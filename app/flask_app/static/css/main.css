@@ -1,0 +1,87 @@
+body {
+    padding: 5px; /* Padding for .navbar-fixed-top. Change value if navbar height changes. Remove if using .navbar-static-top. */
+    background-color:aliceblue;
+    font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+}
+
+h1 {
+  color: black;
+  text-align: center;
+}
+
+h2 {
+  color: black;
+}
+
+table {
+  border: 2px solid black;
+  border-collapse: collapse;
+}
+
+th {
+  padding: 3px;
+  border: 2px solid black;
+  background-color: darkgray;
+}
+
+td {
+  padding: 3px;
+  border: 2px solid black;
+}
+
+
+img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.container {
+  align-items: center;
+}
+
+.button {
+  background-color:black;
+  border: none;
+  color: white;
+  padding: 16px 32px;
+  text-align: center;
+  font-size: 16px;
+  margin: 1% 1%;
+  opacity: 0.6;
+  transition: 0.3s;
+  display: inline-block;
+  text-decoration: none;
+  cursor: pointer;
+  width: 30%;
+}
+
+.button:hover {opacity: 1}
+
+
+.bottomright {
+  position: absolute;
+  bottom: 8px;
+  right: 16px;
+  font-size: 16px;
+}
+
+.bottomleft {
+  color: black;
+  position: absolute;
+  bottom: 8px;
+  left: 16px;
+  font-size: 16px;
+}
+
+.upperleft {
+  color: black;
+  position: absolute;
+  top: 8px;
+  left: 16px;
+  font-size: 16px;
+}
+
+.uppercase {
+  text-transform: uppercase
+}
