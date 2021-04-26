@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Home</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+ </head>
+
+ <body>
+   <div class="container">
+      <h1 class="uppercase">
+        Multihop network manager
+      </h1>
+      <form method ="post">
+        <div>
+          <button type="submit" class="button" name="button_name" value="node_info">
+            Node Information
+          </button>
+          <button type="submit" class="button" name="button_name" value="net_topology">
+            Network Topology
+          </button>
+          <button type="submit" class="button" name="button_name" value="other">
+            Other
+          </button>
+        </div>
+      </form>
+  </div>
+
+
+  <div class="bottomleft">
+    <div class="uppercase">
+      MAC: {{info.MAC}}
+    </div>
+    <div class="uppercase">
+        IP: {{info.IP}}
+    </div> 
+    <div class="uppercase">
+      SN: {{info.SN}}
+    </div>
+    <div>
+      Model: {{info.MODEL}}
+    </div>
+  </div>
+
+</body>
+
+</html>
