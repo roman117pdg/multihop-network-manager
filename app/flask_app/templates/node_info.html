@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" http-equiv="refresh" content="3">
+  <title>Node Information</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+ </head>
+ 
+  <body>
+    <div class="container">
+       <h1 class="uppercase">
+         Node information
+       </h1>
+
+       <div>
+        <h2 class="uppercase">
+            General Information
+        </h2>
+        <table>
+            <tr>
+                <th>MAC address</th>
+                <th>IPv6 address</th>
+                <th>Serial Number</th>
+                <th>Model</th>
+                <th>Sequence Number</th>
+            </tr>
+            <tr>
+                <td class="uppercase">{{ info.MAC }}</td>
+                <td class="uppercase">{{ info.IP }}</td>
+                <td class="uppercase">{{ info.SN }}</td>
+                <td>{{ info.MODEL }}</td>
+                <td>{{ seqno }}</td>
+            </tr>
+        </table>
+    </div>
+       <div>
+            <h2 class="uppercase">
+                Neighbour Table
+            </h2>
+            <table>
+                <tr>
+                    <th>interface ID</th>
+                    <th>neighbour address</th>
+                    <th>Hello hist</th>
+                    <th>IHU hist</th>
+                    <th>rxcost</th>
+                    <th>txcost</th>
+                    <th>expected seqno</th>
+                    <th>Hello interval</th>
+                    <th>IHU interval</th>
+                </tr>
+            {% for row in neighbours %}
+                    <tr>
+                        <td>{{ row.interface_id }}</td>
+                        <td class="uppercase">{{ row.neigh_addr }}</td>
+                        <td>{{ row.hello_hist }}</td>
+                        <td>{{ row.IHU_hist }}</td>
+                        <td>{{ row.rxcost }}</td>
+                        <td>{{ row.txcost }}</td>
+                        <td>{{ row.expect_seqno }}</td>
+                        <td>{{ row.Hello_interval }}</td>
+                        <td>{{ row.IHU_interval }}</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+        <div>
+            <h2 class="uppercase">
+                Source Table
+            </h2>
+            <table>
+                <tr>
+                    <th>prefix</th>
+                    <th>prefix length</th>
+                    <th>router ID</th>
+                    <th>seqno</th>
+                    <th>metric</th>
+                    <th>garbage coll timer</th>
+                </tr>
+            {% for row in sources %}
+                    <tr>
+                        <td class="uppercase">{{ row.prefix }}</td>
+                        <td>{{ row.plen }}</td>
+                        <td>{{ row.router_id }}</td>
+                        <td>{{ row.seqno }}</td>
+                        <td>{{ row.metric }}</td>
+                        <td>{{ row.garb_col_timer }}</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+        <div>
+            <h2 class="uppercase">
+                Route Table
+            </h2>
+            <table>
+                <tr>
+                    <th>prefix</th>
+                    <th>prefix length</th>
+                    <th>router ID</th>
+                    <th>seqno</th>
+                    <th>metric</th>
+                    <th>nexthop</th>
+                    <th>use flag</th>
+                    <th>route expire timer</th>
+                </tr>
+            {% for row in routes %}
+                    <tr>
+                        <td class="uppercase">{{ row.prefix }}</td>
+                        <td>{{ row.plen }}</td>
+                        <td>{{ row.router_id }}</td>
+                        <td>{{ row.seqno }}</td>
+                        <td>{{ row.metric }}</td>
+                        <td class="uppercase">{{ row.nexthop }}</td>
+                        <td>{{ row.use_flag }}</td>
+                        <td>{{ row.route_expire_timer }}</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+   </div>
+ </body>
+ 
+ </html>
