@@ -8,7 +8,7 @@ Application for creating multihop network. The Babel protocol was used to manage
 3. After successful writing take the card out and put it back (again into computer)
 4. Download necessary files on computer
    
-        $ wget https://raw.githubusercontent.com/roman117pdg/mesh-network-manager/master/multihop_network/configure_ETH_rp3B.sh https://raw.githubusercontent.com/roman117pdg/mesh-network-manager/master/multihop_network/configure_WIFI_rp3Ap.sh
+        $ wget https://raw.githubusercontent.com/roman117pdg/multihop-network-manager/main/other/configure_ETH_rp3B.sh https://raw.githubusercontent.com/roman117pdg/multihop-network-manager/main/other/configure_WIFI_rp3Ap.sh
 
 5. Run ***"configure_WIFI_rp3Ap.sh"*** or ***"configure_ETH_rp3B.sh"*** bash script with root privileges (this script is setting wifi configuration and enabling ssh service)
 
@@ -27,7 +27,7 @@ Application for creating multihop network. The Babel protocol was used to manage
 
 9.  After login in download necessary files on Raspberry PI device
    
-        $ wget []
+        $ wget https://github.com/roman117pdg/multihop-network-manager/archive/refs/tags/[release number].zip
 
 10. Download necessary module pyroute2
 
