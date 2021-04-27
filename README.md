@@ -33,6 +33,7 @@ Application for creating multihop network. The Babel protocol was used to manage
 
         $ sudo pip3 install pyroute2
         $ sudo pip3 install graphviz
+        $ sudo apt-get install graphviz -y
 
 11. Run program with the proper flags 
 
