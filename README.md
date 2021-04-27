@@ -29,9 +29,10 @@ Application for creating multihop network. The Babel protocol was used to manage
    
         $ wget https://github.com/roman117pdg/multihop-network-manager/archive/refs/tags/[release number].zip
 
-10. Download necessary module pyroute2
+10. Download necessary module pyroute2 and graphviz
 
         $ sudo pip3 install pyroute2
+        $ sudo pip3 install graphviz
 
 11. Run program with the proper flags 
 
