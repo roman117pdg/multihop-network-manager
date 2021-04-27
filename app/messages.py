@@ -487,10 +487,10 @@ class Messages:
         msg_pnum = self.bytes2int(msg[i:i+self.RTInfo['PNUM_LENGTH']])
         i += self.RTInfo['PNUM_LENGTH']
         msg_prefixes = []
-        for j in range(i, i+msg_pnum):
-            msg_prefixes.append(self.bytes2ip(msg[i:i+PREFIX_LENGTH]))
-        i += self.RTInfo['PNUM_LENGTH']*PREFIX_LENGTH
+        for j in range(0, msg_pnum):
+            msg_prefixes.append(self.bytes2ip(msg[i+j*PREFIX_LENGTH:i+(j+1)*PREFIX_LENGTH]))
+        i += msg_pnum*PREFIX_LENGTH
         msg_nexthops = []
-        for j in range(i, i+msg_pnum):
-            msg_nexthops.append(self.bytes2ip(msg[i:i+PREFIX_LENGTH]))            
+        for j in range(0, msg_pnum):
+            msg_nexthops.append(self.bytes2ip(msg[i+j*PREFIX_LENGTH:i+(j+1)*PREFIX_LENGTH]))            
         return {'TYPE':self.RTInfo['TYPE'],'PLEN':msg_plen,'PNUM':msg_pnum,'PREFIXES':msg_prefixes,'NEXTHOPS':msg_nexthops}
