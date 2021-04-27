@@ -6,12 +6,15 @@ import time
 import secrets
 from graphviz import Digraph
 from shutil import copyfile
+import random
 
 app = flask.Flask(__name__)
 app.debug = False
 app.secret_key = os.urandom(24)
 users_ids = []
 info = {'MAC':'', 'IP':'', 'SN':'', 'MODEL':''}
+nodes = [info['IP'] ]
+colors = ['red']
 babel_man = None
 BACKGROUND_COLOR = 'aliceblue'
 
@@ -59,33 +62,36 @@ def node_info():
 def net_topology():
     if 'id' in flask.session:
         nt = Digraph(comment='Network Topology', format='png')  
-        nt.attr(bgcolor=BACKGROUND_COLOR)  
-        nt.node('0', info['IP'], style='filled', fillcolor='red')   
-        nodes = [info['IP']] 
+        nt.attr(bgcolor=BACKGROUND_COLOR)   
+        for i in range(len(nodes)):
+            nt.node(str(i), nodes[i], style='filled', fillcolor=colors[i])  
         routes = babel_man.get_route_table()
         for route in routes:
             if route['use_flag'] == "True":
-                if route['prefix'] == route['nexthop']: # to potem trzeba zmienic
-                    if route['prefix'] not in nodes:
-                        nt.node(str(len(nodes)), route['prefix'], style='filled', fillcolor='lightskyblue')
-                        nodes.append(route['prefix'])  
-                    nt.edge('0', str(nodes.index(route['prefix']))) 
+                #if route['prefix'] == route['nexthop']: # temp solution
+                if route['nexthop'] not in nodes:
+                    create_node(nt=nt, addr=route['nexthop']) 
+                src_index = 0
+                next_hop_index = nodes.index(route['nexthop'])
+                dest_index = nodes.index(route['prefix'])
+                nt.edge(str(src_index), str(next_hop_index), color=colors[dest_index]) 
 
         # other nodes
         other_nodes = babel_man.get_other_nodes_rts()
         for other_node in other_nodes:
             addr = other_node['addr']
             if addr not in nodes:
-                nt.node(str(len(nodes)), addr, style='filled', fillcolor='lightskyblue')
-                nodes.append(addr)
+                    create_node(nt=nt, addr=addr) 
             prefixes = other_node['prefixes']
             nexthops = other_node['nexthops']
             for i in range(0, len(prefixes)):
-                if prefixes[i] == nexthops[i]:
-                    if prefixes[i] not in nodes:
-                        nt.node(str(len(nodes)), prefixes[i], style='filled', fillcolor='lightskyblue')
-                        nodes.append(prefixes[i])  
-                    nt.edge(str(nodes.index(addr)), str(nodes.index(prefixes[i]))) 
+                # if prefixes[i] == nexthops[i]:
+                if nexthops[i] not in nodes:
+                    create_node(nt=nt, addr=nexthops[i]) 
+                src_index = nodes.index(addr)
+                next_hop_index = nodes.index(nexthops[i])
+                dest_index = nodes.index(prefixes[i])
+                nt.edge(str(src_index), str(next_hop_index), color=colors[dest_index])
 
 
         remove_old_images(directory="flask_app/static/images")
@@ -107,7 +113,8 @@ def other():
 
 
 def run(app_logger, bm, mac, ipv6, sn, model):
-    global babel_man, info
+    global babel_man, info, nodes
+    nodes[0] = ipv6
     babel_man = bm
     info = {'MAC':mac, 'IP':ipv6, 'SN':sn, 'MODEL':model}
     port = int(os.environ.get("PORT", 5000))
@@ -121,6 +128,18 @@ def set_value(value):
 def remove_old_images(directory):
     for file in os.listdir(directory):
         os.remove(directory+"/"+file)
+
+
+def random_color():
+    random_num = random.randint(0,16777215)
+    hex_num = str(hex(random_num))
+    return '#'+ hex_num[2:]
+
+def create_node(nt, addr):
+    node_color = random_color()
+    nt.node(str(len(nodes)), addr, style='filled', fillcolor=node_color)
+    nodes.append(addr)  
+    colors.append(node_color) 
     
 
 # flask_thread = Thread(target = flask_qr.run, name="flask", args =(app_logger, ), daemon=True)
