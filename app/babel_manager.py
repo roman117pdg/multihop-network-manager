@@ -133,10 +133,11 @@ class BabelManager:
                         self.main_logger.info("sendding Seqno Request message for that prefix")
                         self.send_SeqnoReq_msg(addr="MULTICAST", ae=3, plen=self.PLEN, seqno=route.seqno+1, hopcount=self.HOPCOUNT, routerid=route.router_id, prefix=route.prefix)
                         if route.use_flag == True:
-                            self.routing.del_route(destination=best_route.prefix, nexthop=best_route.nexthop)
+                            self.routing.del_route(destination=route.prefix, nexthop=route.nexthop)
                             self.main_logger.info("record ["+str(route)+"] is outdated, deleting route from OS routing table")
                         self.main_logger.info("record ["+str(route)+"] is outdated, removing it from routing table")
                         self.route_table.remove(route)
+            self.route_selection()
     
 
     #    def check_pend_req_table(self):
@@ -274,7 +275,7 @@ class BabelManager:
                         source.metric = route.metric
                         self.main_logger.info("source updated, (reason: metric) source:"+str(source)+", route: "+str(route))
                     else:
-                        self.main_logger.info("source NOT updated source:"+str(source)+", route: "+str(route))
+                        self.main_logger.info("source NOT updated, source:"+str(source)+", route: "+str(route))
                     break
             if route_in_source_table == False:
                 self.source_table.append(SourceTableRecord(prefix=route.prefix, plen=route.plen, router_id=route.router_id, seqno=route.seqno, metric=route.metric, garb_col_timer=time.time()))
@@ -446,11 +447,16 @@ class BabelManager:
                     body={'ae':ae, 'flags':flags, 'plen':plen, 'omitted':omitted, 'interval':interval, 'seqno':seqno, 'metric':metric, 'prefix':record_prefix})
                     self.send_RouterID_msg(destination=addr)
                     return
-            
-            self.main_logger.info("adding unicast Update retraction message (no info about prefix) to output queue")
-            self.ipv6_connection.add_msg_to_out_que(msgtype=self.MSG_TYPE['Update'], destination=addr, 
-            body={'ae':3, 'flags':0, 'plen':64, 'omitted':0, 'interval':0, 'seqno':0, 'metric':int(0xFFFF), 'prefix':prefix})
-            self.send_RouterID_msg(destination=addr)
+            if record_prefix == self.MY_IP:
+                self.main_logger.info("adding multicast Update message to output queue (own prefix)")
+                self.ipv6_connection.add_msg_to_out_que(msgtype=self.MSG_TYPE['Update'], destination=addr, 
+                body={'ae':ae, 'flags':flags, 'plen':plen, 'omitted':omitted, 'interval':interval, 'seqno':self.seqno, 'metric':0, 'prefix':self.MY_IP})
+                self.send_RouterID_msg(destination=addr)
+            else:
+                self.main_logger.info("adding unicast Update retraction message (no info about prefix) to output queue")
+                self.ipv6_connection.add_msg_to_out_que(msgtype=self.MSG_TYPE['Update'], destination=addr, 
+                body={'ae':3, 'flags':0, 'plen':64, 'omitted':0, 'interval':0, 'seqno':0, 'metric':int(0xFFFF), 'prefix':record_prefix})
+                self.send_RouterID_msg(destination=addr)
         
 
    
@@ -539,7 +545,19 @@ class BabelManager:
                         hopcount=message['HOPCOUNT'] - 1, routerid=message['ROUTERID'], prefix=message['PREFIX'])
                         self.main_logger.info("forwarding Seqno req message with decreased HOPCOUNT value: "+str(message['HOPCOUNT'] - 1))
                         return
-        self.main_logger.info("silently ignoring message Seqno Request (reason: no record in rt table)")
+        if message['ROUTERID'] == self.MY_RID:
+            self.main_logger.info("given routerid is equal to this node routerid")
+            if message['SEQNO'] > self.seqno:
+                self.main_logger.info("increasing seqno and sending Update message for given prefix: "+str(message['PREFIX']))
+                self.seqno += 1
+                self.send_Update_msg(record_prefix=message['PREFIX'])
+                return
+            else:
+                self.main_logger.info("sending Update message for given prefix: "+str(message['PREFIX']))
+                self.send_Update_msg(record_prefix=message['PREFIX'])
+
+        else:
+            self.main_logger.info("silently ignoring message Seqno Request (reason: no record in rt table)")
 
 
 
