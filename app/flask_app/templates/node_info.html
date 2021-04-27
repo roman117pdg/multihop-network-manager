@@ -107,14 +107,25 @@
                 </tr>
             {% for row in routes %}
                     <tr>
-                        <td class="uppercase">{{ row.prefix }}</td>
-                        <td>{{ row.plen }}</td>
-                        <td>{{ row.router_id }}</td>
-                        <td>{{ row.seqno }}</td>
-                        <td>{{ row.metric }}</td>
-                        <td class="uppercase">{{ row.nexthop }}</td>
-                        <td>{{ row.use_flag }}</td>
-                        <td>{{ row.route_expire_timer }}</td>
+                        {% if row.use_flag == 'True' %}
+                            <td class="uppercase green_txt">{{ row.prefix }}</td>
+                            <td class="green_txt">{{ row.plen }}</td>
+                            <td class="green_txt">{{ row.router_id }}</td>
+                            <td class="green_txt">{{ row.seqno }}</td>
+                            <td class="green_txt">{{ row.metric }}</td>
+                            <td class="uppercase green_txt">{{ row.nexthop }}</td>
+                            <td class="green_txt">{{ row.use_flag }}</td>
+                            <td class="green_txt">{{ row.route_expire_timer }}</td>
+                        {% else %}
+                            <td class="uppercase red_txt">{{ row.prefix }}</td>
+                            <td class="red_txt">{{ row.plen }}</td>
+                            <td class="red_txt">{{ row.router_id }}</td>
+                            <td class="red_txt">{{ row.seqno }}</td>
+                            <td class="red_txt">{{ row.metric }}</td>
+                            <td class="uppercase red_txt">{{ row.nexthop }}</td>
+                            <td class="red_txt">{{ row.use_flag }}</td>
+                            <td class="red_txt">{{ row.route_expire_timer }}</td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
             </table>
