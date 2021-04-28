@@ -403,7 +403,7 @@ class Messages:
         msg_ae = self.int2bytes(ae, self.RouteReq['AE_LENGTH'])
         msg_plen = self.int2bytes(plen, self.RouteReq['PLEN_LENGTH'])
         PREFIX_LENGTH = math.ceil(plen/8)
-        msg_prefix = self.ip2bytes(prefix, self.RouteReq['PREFIX_LENGTH'])
+        msg_prefix = self.ip2bytes(prefix, PREFIX_LENGTH)
         return msg_ae + msg_plen + msg_prefix
 
     def decodeRouteReq(self, msg):
