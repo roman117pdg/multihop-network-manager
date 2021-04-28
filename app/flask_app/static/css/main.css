@@ -85,3 +85,10 @@ img {
 .uppercase {
   text-transform: uppercase
 }
+
+.green_txt {
+  color: green;
+}
+.red_txt {
+  color: red;
+}
