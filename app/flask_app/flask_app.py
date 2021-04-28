@@ -90,6 +90,8 @@ def net_topology():
                 # if prefixes[i] == nexthops[i]:
                 if nexthops[i] not in nodes:
                     create_node(nt=nt, addr=nexthops[i]) 
+                if prefixes[i] not in nodes:
+                    create_node(nt=nt, addr=prefixes[i]) 
                 src_index = nodes.index(addr)
                 next_hop_index = nodes.index(nexthops[i])
                 dest_index = nodes.index(prefixes[i])
