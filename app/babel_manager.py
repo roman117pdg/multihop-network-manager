@@ -537,8 +537,8 @@ class BabelManager:
                 elif route.router_id == message['ROUTERID'] and route.seqno < message['SEQNO']:
                     if message['ROUTERID'] == self.MY_RID:
                         self.seqno += 1
-                        self.send_Update_msg(record_prefix=message['PREFIX'])
-                        self.main_logger.info("increasing seqno and sending Update message for given prefix: "+str(message['PREFIX']))
+                        self.send_Update_msg()
+                        self.main_logger.info("increasing seqno and sending Update messages")
                         return
                     elif message['HOPCOUNT'] >= 2:
                         self.send_SeqnoReq_msg(addr=message['PREFIX'], ae=message['AE'], plen=message['PLEN'], seqno=message['SEQNO'], 
@@ -548,13 +548,13 @@ class BabelManager:
         if message['ROUTERID'] == self.MY_RID:
             self.main_logger.info("given routerid is equal to this node routerid")
             if message['SEQNO'] > self.seqno:
-                self.main_logger.info("increasing seqno and sending Update message for given prefix: "+str(message['PREFIX']))
                 self.seqno += 1
-                self.send_Update_msg(record_prefix=message['PREFIX'])
+                self.send_Update_msg()
+                self.main_logger.info("increasing seqno and sending Update messages")
                 return
             else:
-                self.main_logger.info("sending Update message for given prefix: "+str(message['PREFIX']))
-                self.send_Update_msg(record_prefix=message['PREFIX'])
+                self.main_logger.info("sending Update messages")
+                self.send_Update_msg()
 
         else:
             self.main_logger.info("silently ignoring message Seqno Request (reason: no record in rt table)")
