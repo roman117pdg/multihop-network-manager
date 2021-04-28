@@ -71,6 +71,8 @@ def net_topology():
                 #if route['prefix'] == route['nexthop']: # temp solution
                 if route['nexthop'] not in nodes:
                     create_node(nt=nt, addr=route['nexthop']) 
+                if route['prefix'] not in nodes:
+                    create_node(nt=nt, addr=route['prefix']) 
                 src_index = 0
                 next_hop_index = nodes.index(route['nexthop'])
                 dest_index = nodes.index(route['prefix'])
