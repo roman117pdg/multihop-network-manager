@@ -27,6 +27,7 @@ class PeerUDPConnection:
         self.PORT_IPV6 = 6696
         self.PORT_IPV4 = 6696 
         self.BUFFER_SIZE = 2048
+        self.TTL = 16
         self.INTERFACE_INDEX = interface_idx
         self.main_logger = main_logger
         
@@ -115,6 +116,7 @@ class PeerUDPConnection:
             peer_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             peer_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             peer_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            peer_socket.setsockopt(socket.SOL_IP, socket.IP_TTL, self.TTL)
             # peer_socket.setsockopt(socket.SOL_SOCKET, 25, "wlan0"+'\0')
             peer_socket.setblocking(False)
             peer_socket.bind(self.ADDR)
@@ -125,6 +127,7 @@ class PeerUDPConnection:
             peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
             peer_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             peer_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            peer_socket.setsockopt(socket.SOL_IP, socket.IP_TTL, self.TTL)
             
             req = struct.pack("=16si", socket.inet_pton(socket.AF_INET6, self.MULTICAST), self.INTERFACE_INDEX)
             peer_socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_JOIN_GROUP, req)
