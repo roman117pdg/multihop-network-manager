@@ -36,9 +36,10 @@ class BabelManager:
         self.UPDATE_MSG_INTERVAL = 4*self.HELLO_MSG_INTERVAL
         self.IHU_HOLD_TIME = int(3.5 * self.IHU_MSG_INTERVAL)
         self.ROUTE_EXPIRY_TIME =  int(3.5 * self.UPDATE_MSG_INTERVAL)
+        self.GC = 1800 # 3 minutes - garbage collection timer (source table)
 
         self.PLEN = 64 # in bits
-        self.HOPCOUNT = 3
+        self.HOPCOUNT = 16
         self.ACK_REQ_INTERVAL = 5
 
         self.IFACE_IDX = iface_idx
@@ -114,7 +115,7 @@ class BabelManager:
         while len(self.route_table) == 0:
             time.sleep(1.5)
         while True:
-            time.sleep(self.ROUTE_EXPIRY_TIME/10)
+            time.sleep(self.ROUTE_EXPIRY_TIME/20)
             self.main_logger.info("checking route_table for outdated records")
             for i in range(len(self.route_table)-1, -1, -1):
                 route = self.route_table[i]
@@ -138,6 +139,15 @@ class BabelManager:
                         self.main_logger.info("record ["+str(route)+"] is outdated, removing it from routing table")
                         self.route_table.remove(route)
             self.route_selection()
+
+            self.main_logger.info("checking source_table for outdated records")
+            for i in range(len(self.source_table)-1, -1, -1):
+                source = self.source_table[i]
+                self.main_logger.info("checking source: "+str(source)+", time"+str(time.time()))
+                if (time.time() - source.garb_col_timer) > (self.GC/10):
+                    self.main_logger.info("source is outdated, it will be removed")
+                    self.source_table.remove(source)
+
     
 
     #    def check_pend_req_table(self):
@@ -267,12 +277,14 @@ class BabelManager:
             for source in self.source_table:
                 if source.prefix == route.prefix:
                     route_in_source_table = True
-                    if source.seqno < route.seqno:
+                    if source.seqno < route.seqno and route.use_flag == True:
                         source.seqno = route.seqno
                         source.metric = route.metric
+                        source.garb_col_timer = time.time()
                         self.main_logger.info("source updated, (reason: seqno) source:"+str(source)+", route: "+str(route))
-                    elif source.seqno == route.seqno and source.metric > route.metric:
+                    elif source.seqno == route.seqno and source.metric > route.metric and route.use_flag == True:
                         source.metric = route.metric
+                        source.garb_col_timer = time.time()
                         self.main_logger.info("source updated, (reason: metric) source:"+str(source)+", route: "+str(route))
                     else:
                         self.main_logger.info("source NOT updated, source:"+str(source)+", route: "+str(route))
@@ -315,7 +327,9 @@ class BabelManager:
                     if best_route == None:
                         if route.metric != int(0xFFFF):
                             best_route = route
-                    elif route.metric < best_route.metric:
+                    elif route.metric < best_route.metric and route.seqno >= best_route.seqno:
+                        best_route = route
+                    elif route.metric <= best_route.metric and route.seqno > best_route.seqno:
                         best_route = route
                     elif old_route != None and route.metric == old_route.metric:
                         best_route = old_route
@@ -330,6 +344,8 @@ class BabelManager:
                     best_route.use_flag = True
                     if old_route != None:
                         old_route.use_flag = False
+                    self.send_Update_msg(record_prefix=source.prefix)
+                    self.send_RouteReq_msg(ae=0, addr='MULTICAST', prefix=source.prefix)
                 else:
                     self.main_logger.info("old route to "+str(source.prefix)+" is already best route")
 
@@ -466,6 +482,8 @@ class BabelManager:
         """Handle the received Update message."""
         self.main_logger.info("message Update handling beggins (addr:"+str(addr)+",msg:"+str(message)+")")
         new_metric = message['METRIC'] + self.compute_cost(addr)
+        if new_metric > int(0xFFFF):
+            new_metric = int(0xFFFF)
         if message['PREFIX'] == self.MY_IP:
             self.main_logger.info("prefix in update message is this node prefix, silently ignoring this message")
         elif self.feasible(message['PREFIX'], message['SEQNO'], new_metric) == True:
@@ -474,11 +492,11 @@ class BabelManager:
             self.route_selection()
         else:
             self.main_logger.info("feasibility condition was NOT fulfilled")
-            if new_metric < int(0xFFFF):
-                for record in self.route_table:
-                    if record.prefix == message['PREFIX'] and record.nexthop == addr and record.use_flag == True and message['METRIC'] < int(0xFFFF):
-                        self.main_logger.info("updating route expire timer")
-                        record.route_expire_timer = time.time()
+            # if new_metric < int(0xFFFF):
+            #     for record in self.route_table:
+            #         if record.prefix == message['PREFIX'] and record.nexthop == addr and record.use_flag == True and message['METRIC'] < int(0xFFFF):
+            #             self.main_logger.info("updating route expire timer")
+            #             record.route_expire_timer = time.time()
 
                 # Dealing with Unfeaseble Updates 3.8.2.2.
                 # for route in self.route_table:
@@ -492,10 +510,17 @@ class BabelManager:
                 #                 self.main_logger.info("record in source table was updated: source("+str(source)+")")
 
 
-    def send_RouteReq_msg(self):
+    def send_RouteReq_msg(self, ae, addr, prefix):
         """Send Route Request message."""
         self.main_logger.info("adding multicast Route Request messages to output queue")
-        # TODO
+        if ae == 0:
+            self.main_logger.info("with ae value equal 0")
+            self.ipv6_connection.add_msg_to_out_que(msgtype=self.MSG_TYPE['RouteReq'], destination=addr, body={'ae':ae, 'plen':self.PLEN, 'prefix':prefix})
+        elif ae == 3:
+            self.main_logger.info("with ae value equal 3")
+            self.ipv6_connection.add_msg_to_out_que(msgtype=self.MSG_TYPE['RouteReq'], destination=addr, body={'ae':ae, 'plen':self.PLEN, 'prefix':prefix})
+        else:
+            self.main_logger.warning("wrong ae value, silently ignoring this tlv")
 
 
     def handle_RouteReq_msg(self, addr, message):
@@ -541,9 +566,17 @@ class BabelManager:
                         self.main_logger.info("increasing seqno and sending Update messages")
                         return
                     elif message['HOPCOUNT'] >= 2:
-                        self.send_SeqnoReq_msg(addr=message['PREFIX'], ae=message['AE'], plen=message['PLEN'], seqno=message['SEQNO'], 
-                        hopcount=message['HOPCOUNT'] - 1, routerid=message['ROUTERID'], prefix=message['PREFIX'])
-                        self.main_logger.info("forwarding Seqno req message with decreased HOPCOUNT value: "+str(message['HOPCOUNT'] - 1))
+                        for route in self.route_table:
+                            if route.prefix == message['PREFIX'] and route.use_flag == True:
+                                if route.metric >= int(0xFFFF):
+                                    self.send_SeqnoReq_msg(addr="MULTICAST", ae=message['AE'], plen=message['PLEN'], seqno=message['SEQNO'], 
+                                    hopcount=message['HOPCOUNT'] - 1, routerid=message['ROUTERID'], prefix=message['PREFIX'])
+                                    self.main_logger.info("forwarding Seqno req message with decreased HOPCOUNT value: "+str(message['HOPCOUNT'] - 1))
+                        
+                                else:
+                                    self.send_SeqnoReq_msg(addr=message['PREFIX'], ae=message['AE'], plen=message['PLEN'], seqno=message['SEQNO'], 
+                                    hopcount=message['HOPCOUNT'] - 1, routerid=message['ROUTERID'], prefix=message['PREFIX'])
+                                    self.main_logger.info("forwarding Seqno req message with decreased HOPCOUNT value: "+str(message['HOPCOUNT'] - 1))
                         return
         if message['ROUTERID'] == self.MY_RID:
             self.main_logger.info("given routerid is equal to this node routerid")
