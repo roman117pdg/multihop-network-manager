@@ -50,6 +50,19 @@ class PeerUDPConnection:
         # record in input_queue = msg
         self.input_queue = []
 
+
+    def unify_ipv6(self, ipv6):
+        """Unify ipv6 addres (string object). 
+        Basically adding zeros from left to fill every quartet (up to 4 charts)."""
+        ipv6_table = ipv6.split(":")
+        unified_ipv6 = ""
+        for quartet in ipv6_table:
+            if quartet != "":
+                zeros = "0"*(4-len(quartet))
+                unified_ipv6 += zeros + quartet
+            unified_ipv6 += ":"
+        return unified_ipv6[0:-1]
+        
     
 
     def add_msg_to_out_que(self, msgtype, destination, body):
@@ -150,6 +163,8 @@ class PeerUDPConnection:
         data = key.data
         if mask & selectors.EVENT_READ and self.receive_message_event.is_set() == False:
             data, msg_addr = sock.recvfrom(self.BUFFER_SIZE)
+            if self.IP_VER == 6:
+                msg_addr = (self.unify_ipv6(msg_addr[0]), msg_addr[1],msg_addr[2],msg_addr[3])
             self.main_logger.info("starting read event (data:"+str(data)+",addr:"+str(msg_addr)+")")
             if data and (msg_addr[0] != self.MY_IP) and (msg_addr[0] != self.LOCALHOST):
                 data = self.decode_msg(data)
