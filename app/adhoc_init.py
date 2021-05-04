@@ -166,7 +166,7 @@ class AdhocInit:
         try:
             cmd_1 = "sudo sysctl -w net.ipv6.conf.all.forwarding=1"
             subprocess.Popen(cmd_1, shell=True, stdout=subprocess.PIPE)
-            cmd_2 = " iptables -A FORWARD -i wlan0 -j ACCEPT"
+            cmd_2 = "sudo iptables -A FORWARD -i wlan0 -j ACCEPT"
             subprocess.Popen(cmd_2, shell=True, stdout=subprocess.PIPE)
             self.main_logger.info("ipv6 forwarding is enable")
         except Exception as e:
