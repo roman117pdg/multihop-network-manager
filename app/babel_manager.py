@@ -148,24 +148,6 @@ class BabelManager:
                     self.main_logger.info("source is outdated, it will be removed")
                     self.source_table.remove(source)
 
-    
-
-    #    def check_pend_req_table(self):
-    #     """Check periodically if pending request table have outdated records or records to send"""
-    #     while len(self.pend_req_table) == 0:
-    #         time.sleep(1.5)
-    #     while True:
-    #         time.sleep(self.HELLO_MSG_INTERVAL/10)
-    #         self.main_logger.info("checking pend_req_table for outdated records")
-    #         for i in range(len(self.pend_req_table)-1, -1, -1):
-    #             record = self.pend_req_table[i]
-    #             if record.resent_count > 0:
-    #                 record.resent_count -= 1
-    #                 self.send_SeqnoReq_msg(addr=record.nexthop, ae=3, plen=self.PLEN, seqno=record.seqno, hopcount=self.HOPCOUNT, routerid=record.router_id, prefix=record.prefix)
-    #                 self.main_logger.info("sendding Seqno Request message, record: "+str(record))
-    #             else:
-    #                 self.main_logger.info("record ["+str(record)+"] is outdated, removing it from pending request table")
-    #                 self.pend_req_table.remove(record)
 
     
 
@@ -231,6 +213,10 @@ class BabelManager:
         self.main_logger.info("adding new neighbour record to neigh_table (addr:"+str(addr)+", msg:"+str(message)+")")
         self.neigh_table.append(NeighbourTableRecord(interface_id=self.IFACE_IDX, neigh_addr=addr, hello_hist=[0,0,0,0,time.time()], 
         IHU_hist=0.0, rxcost=int(0xFFFF), txcost=int(0xFFFF), expect_seqno=message['SEQNO']+1, Hello_interval=message['INTERVAL'], IHU_interval=self.IHU_MSG_INTERVAL))
+
+        self.main_logger.info("sending 5 trigerred Hello messages")
+        for i in range(5):
+            self.send_Hello_msg()
         return False
 
 
@@ -323,7 +309,8 @@ class BabelManager:
                     old_route = route
                     self.main_logger.info("found old route: "+str(old_route))
             for route in self.route_table:
-                if route.prefix == source.prefix:
+                # check if route for given prefix is feasible, and then if it is better than selected route
+                if route.prefix == source.prefix and (route.metric <= source.metric or route.seqno > source.seqno):
                     if best_route == None:
                         if route.metric != int(0xFFFF):
                             best_route = route
@@ -337,7 +324,7 @@ class BabelManager:
             if best_route == None:
                 self.main_logger.info("couldn't find any route to: "+str(source.prefix))
             else:
-                self.main_logger.info("route to "+str(source.prefix)+" is: "+str(best_route))
+                self.main_logger.info("best route to "+str(source.prefix)+" is: "+str(best_route))
                 if best_route != old_route:
                     self.main_logger.info("setting new route (prefix: "+str(best_route.prefix)+",nexthop: "+str(best_route.nexthop)+")")
                     self.routing.set_route(destination=best_route.prefix, nexthop=best_route.nexthop)
@@ -473,9 +460,6 @@ class BabelManager:
                 self.ipv6_connection.add_msg_to_out_que(msgtype=self.MSG_TYPE['Update'], destination=addr, 
                 body={'ae':3, 'flags':0, 'plen':64, 'omitted':0, 'interval':0, 'seqno':0, 'metric':int(0xFFFF), 'prefix':record_prefix})
                 self.send_RouterID_msg(destination=addr)
-        
-
-   
 
 
     def handle_Update_msg(self, addr, message):
@@ -492,22 +476,6 @@ class BabelManager:
             self.route_selection()
         else:
             self.main_logger.info("feasibility condition was NOT fulfilled")
-            # if new_metric < int(0xFFFF):
-            #     for record in self.route_table:
-            #         if record.prefix == message['PREFIX'] and record.nexthop == addr and record.use_flag == True and message['METRIC'] < int(0xFFFF):
-            #             self.main_logger.info("updating route expire timer")
-            #             record.route_expire_timer = time.time()
-
-                # Dealing with Unfeaseble Updates 3.8.2.2.
-                # for route in self.route_table:
-                #     if route.prefix == message['PREFIX'] and route.use_flag == True and route.nexthop == addr:
-                #         for source in self.source_table:
-                #             if source.prefix == route.prefix:
-                #                 self.main_logger.info("sendding Seqno Request message for that prefix")
-                #                 self.send_SeqnoReq_msg(addr=route.nexthop, ae=3, plen=self.PLEN, seqno=route.seqno+1, hopcount=self.HOPCOUNT, routerid=route.router_id, prefix=route.prefix)
-                #                 source.seqno = route.seqno
-                #                 source.metric = route.metric
-                #                 self.main_logger.info("record in source table was updated: source("+str(source)+")")
 
 
     def send_RouteReq_msg(self, ae, addr, prefix):
@@ -676,8 +644,6 @@ class BabelManager:
         check_route_exp_tim_thread = threading.Thread(name="check_rout_exp", target=self.check_route_exp_timers, args=( ), daemon=True)
         check_route_exp_tim_thread.start()
 
-        # check_pend_req_table_thread = threading.Thread(name="check_pend_req_table", target=self.check_pend_req_table, args=( ), daemon=True)
-        # check_pend_req_table_thread.start()
 
         Hello_per_IHU = int(self.IHU_MSG_INTERVAL/self.HELLO_MSG_INTERVAL)
         Hello_per_Update = int(self.UPDATE_MSG_INTERVAL/self.HELLO_MSG_INTERVAL)
