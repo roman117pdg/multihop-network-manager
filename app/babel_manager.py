@@ -1,4 +1,5 @@
 import peer_udp_connection
+import adhoc_init
 import threading
 import time
 import logger
@@ -17,7 +18,7 @@ import json
 
 class BabelManager:
 
-    def __init__(self,  mac, ip_v6, iface_idx, sn, main_logger):       
+    def __init__(self, mac, ip_v6, ip_v4, iface_idx, sn, ah_i, main_logger):       
         """BabelManager initial function.
 
         Args:
@@ -26,7 +27,8 @@ class BabelManager:
             iface_idx: Integer value of interface index.
             main_logger: Pointer to main logger class.
         """
-        self.MY_IP = ip_v6
+        self.MY_IPV6 = ip_v6
+        self.MY_IPV4 = ip_v4
         self.MAC = mac
         self.TIME_FOR_RESPONSE = {'ROUTE_CHANGE':0.3, 'REQ_TO_EST_RT':2.0, 'RES_TO_EST_IP':0.2, 'REQ_IP_ADDR':0.5, 'ROUTE_INFO':1.0}
         # RFC 6126 Apenix B Constants
@@ -53,6 +55,7 @@ class BabelManager:
         self.routing = routing.Routing(main_logger)
         self.seqno = 0
         self.interface = self.iproute.link_lookup(ifname='wlan0')[0]
+        self.ah_i = ah_i
 
         self.interface_table = []
         self.neigh_table = []
@@ -60,6 +63,7 @@ class BabelManager:
         self.route_table = []
         # self.pend_req_table = []
         self.other_nodes_rts = []
+        self.ipv6_to_ipv4 = [[self.MY_IPV6], [self.MY_IPV4]]
 
 
     def get_neigh_table(self):
@@ -95,6 +99,17 @@ class BabelManager:
             self.send_RTReq_msg(destination=source.prefix) 
         return tmp_array   
             
+
+    def get_ipv4_from_ipv6(self, ipv6):
+        if ipv6 in self.ipv6_to_ipv4[0]:
+            index = self.ipv6_to_ipv4[0].index(ipv6)
+            return self.ipv6_to_ipv4[1][index]
+        else:
+            self.ipv6_to_ipv4[0].append(ipv6)
+            ipv4 = self.ah_i.get_ipv4_from_ipv6(ipv6)
+            self.ipv6_to_ipv4[1].append(ipv4)
+            return(ipv4)
+
 
     def check_neighb_table(self):
         """Check periodically if neighbours table have outdated records (without IHU updates).
@@ -134,7 +149,7 @@ class BabelManager:
                         self.main_logger.info("sendding Seqno Request message for that prefix")
                         self.send_SeqnoReq_msg(addr="MULTICAST", ae=3, plen=self.PLEN, seqno=route.seqno+1, hopcount=self.HOPCOUNT, routerid=route.router_id, prefix=route.prefix)
                         if route.use_flag == True:
-                            self.routing.del_route(destination=route.prefix, nexthop=route.nexthop)
+                            self.routing.del_route(destination_ipv6=route.prefix, nexthop_ipv6=route.nexthop, destination_ipv4=route.prefix_ipv4, nexthop_ipv4=route.nexthop_ipv4)
                             self.main_logger.info("record ["+str(route)+"] is outdated, deleting route from OS routing table")
                         self.main_logger.info("record ["+str(route)+"] is outdated, removing it from routing table")
                         self.route_table.remove(route)
@@ -293,7 +308,9 @@ class BabelManager:
                 return
 
         if metric < int(0xFFFF):
-            self.route_table.append(RouteTableRecord(prefix=prefix, plen=self.PLEN, router_id=self.MY_RID, metric=metric, seqno=seqno, nexthop=neigh_addr, use_flag=False, route_expire_timer=time.time()))
+            prefix_ipv4 = self.get_ipv4_from_ipv6(prefix)
+            nexthop_ipv4 = self.get_ipv4_from_ipv6(neigh_addr)
+            self.route_table.append(RouteTableRecord(prefix=prefix, prefix_ipv4=prefix_ipv4, plen=self.PLEN, router_id=self.MY_RID, metric=metric, seqno=seqno, nexthop=neigh_addr, nexthop_ipv4=nexthop_ipv4, use_flag=False, route_expire_timer=time.time()))
             self.main_logger.info("route ("+str(self.route_table[len(self.route_table)-1])+") was added")
 
 
@@ -327,7 +344,7 @@ class BabelManager:
                 self.main_logger.info("best route to "+str(source.prefix)+" is: "+str(best_route))
                 if best_route != old_route:
                     self.main_logger.info("setting new route (prefix: "+str(best_route.prefix)+",nexthop: "+str(best_route.nexthop)+")")
-                    self.routing.set_route(destination=best_route.prefix, nexthop=best_route.nexthop)
+                    self.routing.set_route(destination_ipv6=best_route.prefix, nexthop_ipv6=best_route.nexthop, destination_ipv4=best_route.prefix_ipv4, nexthop_ipv4=best_route.nexthop_ipv4)
                     best_route.use_flag = True
                     if old_route != None:
                         old_route.use_flag = False
@@ -385,7 +402,7 @@ class BabelManager:
             rxcost = self.compute_rxcost(record.neigh_addr)
             record.rxcost = rxcost
             interval = self.IHU_MSG_INTERVAL
-            address = self.MY_IP
+            address = self.MY_IPV6
             self.ipv6_connection.add_msg_to_out_que(msgtype=self.MSG_TYPE['IHU'], 
             destination=record.neigh_addr, body={'ae':ae, 'rxcost':rxcost, 'interval':interval, 'address':address})
 
@@ -411,6 +428,20 @@ class BabelManager:
                 route.router_id = message['ROUTERID']
 
 
+    def send_NextHop_msg(self, destination="MULTICAST"):
+        """Send unicast NextHop message. """
+        self.main_logger.info("adding unicast NextHop message to output queue")
+        self.main_logger.info("NextHop message with ipv4 address")
+        self.ipv6_connection.add_msg_to_out_que(msgtype=self.MSG_TYPE['NextHop'], destination=destination, body={'ae':1, 'nexthop':''})
+                
+
+    def handle_NextHop_msg(self, addr, message):
+        """Handle the received NextHop message."""
+        self.main_logger.info("message NextHop handling beggins (addr:"+str(addr)+",msg:"+str(message)+")")
+        # for route in self.route_table:
+        #     if route.prefix == addr:
+        #         route.prefix_ipv4 = message['NEXTHOP']
+
 
     def send_Update_msg(self, addr='MULTICAST', record_prefix=''):
         """Periodically sending Update messages every given period UPDATE_MSG_INTERVAL 
@@ -421,6 +452,7 @@ class BabelManager:
             record_prefix: Specify what record (by addr) have to be send.
         """
         self.main_logger.info("start process of sending Update message")
+        # ae for ipv6 link local is 3
         ae = 3
         flags = 0
         omitted = 0
@@ -438,7 +470,7 @@ class BabelManager:
             
             self.main_logger.info("adding multicast Update message to output queue (own prefix)")
             self.ipv6_connection.add_msg_to_out_que(msgtype=self.MSG_TYPE['Update'], destination=addr, 
-            body={'ae':ae, 'flags':flags, 'plen':plen, 'omitted':omitted, 'interval':interval, 'seqno':self.seqno, 'metric':0, 'prefix':self.MY_IP})
+            body={'ae':ae, 'flags':flags, 'plen':plen, 'omitted':omitted, 'interval':interval, 'seqno':self.seqno, 'metric':0, 'prefix':self.MY_IPV6})
             self.send_RouterID_msg(destination=addr)
         else:
             for record in self.source_table:
@@ -450,10 +482,10 @@ class BabelManager:
                     body={'ae':ae, 'flags':flags, 'plen':plen, 'omitted':omitted, 'interval':interval, 'seqno':seqno, 'metric':metric, 'prefix':record_prefix})
                     self.send_RouterID_msg(destination=addr)
                     return
-            if record_prefix == self.MY_IP:
+            if record_prefix == self.MY_IPV6:
                 self.main_logger.info("adding multicast Update message to output queue (own prefix)")
                 self.ipv6_connection.add_msg_to_out_que(msgtype=self.MSG_TYPE['Update'], destination=addr, 
-                body={'ae':ae, 'flags':flags, 'plen':plen, 'omitted':omitted, 'interval':interval, 'seqno':self.seqno, 'metric':0, 'prefix':self.MY_IP})
+                body={'ae':ae, 'flags':flags, 'plen':plen, 'omitted':omitted, 'interval':interval, 'seqno':self.seqno, 'metric':0, 'prefix':self.MY_IPV6})
                 self.send_RouterID_msg(destination=addr)
             else:
                 self.main_logger.info("adding unicast Update retraction message (no info about prefix) to output queue")
@@ -468,7 +500,7 @@ class BabelManager:
         new_metric = message['METRIC'] + self.compute_cost(addr)
         if new_metric > int(0xFFFF):
             new_metric = int(0xFFFF)
-        if message['PREFIX'] == self.MY_IP:
+        if message['PREFIX'] == self.MY_IPV6:
             self.main_logger.info("prefix in update message is this node prefix, silently ignoring this message")
         elif self.feasible(message['PREFIX'], message['SEQNO'], new_metric) == True:
             self.main_logger.info("feasibility condition was fulfilled")
@@ -556,7 +588,6 @@ class BabelManager:
             else:
                 self.main_logger.info("sending Update messages")
                 self.send_Update_msg()
-
         else:
             self.main_logger.info("silently ignoring message Seqno Request (reason: no record in rt table)")
 
@@ -612,6 +643,8 @@ class BabelManager:
                 self.handle_IHU_msg(addr[0], message) 
             elif message["TYPE"] == self.MSG_TYPE['RouterID']:
                 self.handle_RouterID_msg(addr[0], message) 
+            elif message["TYPE"] == self.MSG_TYPE['NextHop']:
+                self.handle_NextHop_msg(addr[0], message) 
             elif message["TYPE"] == self.MSG_TYPE['Update']:
                 self.handle_Update_msg(addr[0], message) 
             elif message["TYPE"] == self.MSG_TYPE['RouteReq']:
@@ -628,7 +661,7 @@ class BabelManager:
 
 
     def run(self):
-        self.ipv6_connection = peer_udp_connection.PeerUDPConnection(my_ip=self.MY_IP, ip_ver=6, interface_idx=self.IFACE_IDX, main_logger=self.main_logger)
+        self.ipv6_connection = peer_udp_connection.PeerUDPConnection(my_ip=self.MY_IPV6, ip_ver=6, interface_idx=self.IFACE_IDX, main_logger=self.main_logger)
         receive_ipv6_message_event = threading.Event()
         self.interface_table.append(InterfaceTableRecord(interface_id=self.IFACE_IDX, hello_seqno=0))
 
