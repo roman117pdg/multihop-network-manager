@@ -39,18 +39,21 @@ class SourceTableRecord:
     def __str__(self):
         return str(self.__dict__)
 
+
 class RouteTableRecord:
     """Struct like object of Route Table Record.
     I am not using neighbour field, beacouse I don't understand the purpose of it. Maybe it was needed when babel was working in second ISO layer.
     So for this implementation neighbour field is equal nexthop field.
     Full descirption in RFC 6126, chapter 3.2.5."""
-    def __init__(self, prefix, plen, router_id,  metric, seqno, nexthop, use_flag, route_expire_timer):
+    def __init__(self, prefix, prefix_ipv4, plen, router_id,  metric, seqno, nexthop, nexthop_ipv4, use_flag, route_expire_timer):
         self.prefix = prefix
+        self.prefix_ipv4 = prefix_ipv4
         self.plen = plen
         self.router_id = router_id
         self.metric = metric
         self.seqno = seqno
         self.nexthop = nexthop
+        self.nexthop_ipv4 = nexthop_ipv4
         self.use_flag = use_flag
         self.route_expire_timer = route_expire_timer
     def __str__(self):
