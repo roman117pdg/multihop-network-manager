@@ -21,13 +21,15 @@
             <tr>
                 <th>MAC address</th>
                 <th>IPv6 address</th>
+                <th>IPv4 address</th>
                 <th>Serial Number</th>
                 <th>Model</th>
                 <th>Sequence Number</th>
             </tr>
             <tr>
                 <td class="uppercase">{{ info.MAC }}</td>
-                <td class="uppercase">{{ info.IP }}</td>
+                <td class="uppercase">{{ info.IPV6 }}</td>
+                <td class="uppercase">{{ info.IPV4 }}</td>
                 <td class="uppercase">{{ info.SN }}</td>
                 <td>{{ info.MODEL }}</td>
                 <td>{{ seqno }}</td>
@@ -96,12 +98,14 @@
             </h2>
             <table>
                 <tr>
-                    <th>prefix</th>
+                    <th>prefix ipv6</th>
+                    <th>prefix ipv4</th>
                     <th>prefix length</th>
                     <th>router ID</th>
                     <th>seqno</th>
                     <th>metric</th>
-                    <th>nexthop</th>
+                    <th>nexthop ipv6</th>
+                    <th>nexthop ipv4</th>
                     <th>use flag</th>
                     <th>route expire timer</th>
                 </tr>
@@ -109,20 +113,24 @@
                     <tr>
                         {% if row.use_flag == 'True' %}
                             <td class="uppercase green_txt">{{ row.prefix }}</td>
+                            <td class="uppercase green_txt">{{ row.prefix_ipv4}}</td>
                             <td class="green_txt">{{ row.plen }}</td>
                             <td class="green_txt">{{ row.router_id }}</td>
                             <td class="green_txt">{{ row.seqno }}</td>
                             <td class="green_txt">{{ row.metric }}</td>
                             <td class="uppercase green_txt">{{ row.nexthop }}</td>
+                            <td class="uppercase green_txt">{{ row.nexthop_ipv4 }}</td>
                             <td class="green_txt">{{ row.use_flag }}</td>
                             <td class="green_txt">{{ row.route_expire_timer }}</td>
                         {% else %}
                             <td class="uppercase red_txt">{{ row.prefix }}</td>
+                            <td class="uppercase red_txt">{{ row.prefix_ipv4}}</td>
                             <td class="red_txt">{{ row.plen }}</td>
                             <td class="red_txt">{{ row.router_id }}</td>
                             <td class="red_txt">{{ row.seqno }}</td>
                             <td class="red_txt">{{ row.metric }}</td>
                             <td class="uppercase red_txt">{{ row.nexthop }}</td>
+                            <td class="uppercase red_txt">{{ row.nexthop_ipv4 }}</td>
                             <td class="red_txt">{{ row.use_flag }}</td>
                             <td class="red_txt">{{ row.route_expire_timer }}</td>
                         {% endif %}
