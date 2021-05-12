@@ -70,6 +70,7 @@ def main():
     ah_i = adhoc_init.AdhocInit(main_logger)
     ah_i.run()
     ipv6 = ah_i.get_ipv6()
+    ipv4 = ah_i.get_ipv4()
     mac = ah_i.get_mac()
     sn = ah_i.get_sn()
     model = ah_i.get_model()
@@ -77,10 +78,10 @@ def main():
 
     
     main_logger.info("creating BabelManager")
-    bm = babel_manager.BabelManager(mac, ipv6, interface_index, sn, main_logger)
+    bm = babel_manager.BabelManager(mac, ipv6, ipv4, interface_index, sn, ah_i, main_logger)
     
     if webapi == '1':
-        flask_thread = Thread(target = flask_app.run, name="flask", args =(main_logger, bm, mac, ipv6, sn, model,  ), daemon=True)
+        flask_thread = Thread(target = flask_app.run, name="flask", args =(main_logger, bm, mac, ipv6, ipv4, sn, model,  ), daemon=True)
         main_logger.info("starting flask thread...")
         flask_thread.start()
 
