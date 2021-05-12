@@ -22,7 +22,7 @@ class Messages:
         self.IHU = {'TYPE':5,'AE_LENGTH':1, 'RESERVED_LENGTH':1, 'RXCOST_LENGTH':2, 
         'INTERVAL_LENGTH':2, 'ADDRESS_LENGTH':8}
         self.RouterID = {'TYPE':6, 'RESERVED_LENGTH':2, 'ROUTERID_LENGTH':8}
-        self.NextHop = {'TYPE':7, 'AE_LENGTH':1, 'RESERVED_LENGTH':1, 'NEXTHOP_LENGTH':8}
+        self.NextHop = {'TYPE':7, 'AE_LENGTH':1, 'RESERVED_LENGTH':1, 'NEXTHOP_LENGTH':4, 'DEST_LENGTH':4}
         self.Update = {'TYPE':8,'AE_LENGTH':1, 'FLAGS_LENGTH':1, 'PLEN_LENGTH':1, 
         'OMITTED_LENGTH':1, 'INTERVAL_LENGTH':2, 'SEQNO_LENGTH':2, 'METRIC_LENGTH':2}
         self.RouteReq = {'TYPE':9, 'AE_LENGTH':2, 'PLEN_LENGTH':1}
@@ -50,6 +50,7 @@ class Messages:
             array += b'\x00'
         return array
 
+
     def bytes2str(self, bytes_val):
         """Convert bytes to string."""
         if type(bytes_val) == str:
@@ -58,7 +59,7 @@ class Messages:
             return bytes_val.decode(self.CODING_STANDARD)
 
 
-    def ip2bytes(self, ll_ip_val, length):
+    def ipv62bytes(self, ll_ip_val, length):
         """Convert link local IPv6 (string) to bytes."""
         [link_loc, address] = ll_ip_val.split('::')
         blocks = address.split(':')
@@ -67,7 +68,8 @@ class Messages:
             byte_addr += int(block, 16).to_bytes(length=2, byteorder='big')
         return byte_addr
 
-    def bytes2ip(self, bytes_val):
+
+    def bytes2ipv6(self, bytes_val):
         """Convert bytes to IPv6."""
         str_addr = 'fe80:'
         for i in range(4):
@@ -75,6 +77,25 @@ class Messages:
             length = len(string)
             str_addr += ':'+'0'*(6-length) + string[2:length]
         return str_addr
+
+
+    def ipv42bytes(self, ip_val):
+        """Convert IPv4 (string) to bytes."""
+        blocks = ip_val.split('.')
+        byte_addr = b''
+        for block in blocks:
+            byte_addr += int(block).to_bytes(length=1, byteorder='big')
+        return byte_addr
+
+
+    def bytes2ipv4(self, bytes_val):
+        """Convert bytes to IPv4."""
+        str_addr = ""
+        for i in range(4):
+            string = str(int.from_bytes(bytes_val[i:i+1], byteorder='big'))
+            length = len(string)
+            str_addr += '.' + string
+        return str_addr[1:]
 
 
     def int2bytes(self, int_val, length):
@@ -88,6 +109,7 @@ class Messages:
         """
         return int_val.to_bytes(length=length, byteorder=self.BYTEORDER)
         
+
     def bytes2int(self, bytes_val):
         """Convert bytes to integer."""
         if type(bytes_val) == int:
@@ -113,6 +135,7 @@ class Messages:
         msg_bodylength = self.int2bytes(bodylength, self.PACKET['BODYLENGTH_LENGTH'])
         msg_packetbody = body
         return bytes(msg_magic + msg_version + msg_bodylength + msg_packetbody)
+
 
     def decodePacket(self, packet):
         """Decode Packet."""
@@ -184,6 +207,7 @@ class Messages:
             tlv_value = tlv_body
             return tlv_type + tlv_length + tlv_value
     
+
     def decodeTLV(self, tlv_msg):
         """Decode TLV message."""
         tlv_type = tlv_msg[0]
@@ -235,6 +259,7 @@ class Messages:
         msg_mbz = self.int2bytes(mbz, self.PadN['MBZ_LENGTH'])
         return msg_mbz
 
+
     def decodePadN(self, msg):
         """This TLV is silently ignored on reception"""
         self.main_logger.info("creating Pad1 message")
@@ -249,6 +274,7 @@ class Messages:
         msg_nonce = self.int2bytes(nonce, self.AckReq['NONCE_LENGTH'])
         msg_interval = self.int2bytes(interval, self.AckReq['INTERVAL_LENGTH'])
         return msg_reserved + msg_nonce + msg_interval
+
 
     def decodeAckReq(self, msg):
         self.main_logger.info("decoding AckReq message")
@@ -267,6 +293,7 @@ class Messages:
         msg_nonce = self.int2bytes(nonce, self.Ack['NONCE_LENGTH'])
         return msg_nonce
 
+
     def decodeAck(self, msg):
         self.main_logger.info("decoding Ack message")
         i = 2 
@@ -283,6 +310,7 @@ class Messages:
         msg_interval = self.int2bytes(interval, self.Hello['INTERVAL_LENGTH'])
         return msg_reserved + msg_seqno + msg_interval
 
+
     def decodeHello(self, msg):
         self.main_logger.info("decoding Hello message")
         # reserved value is ignored on reception
@@ -293,7 +321,6 @@ class Messages:
         return {'TYPE':self.Hello['TYPE'], 'SEQNO':msg_seqno, 'INTERVAL':msg_interval}
 
 
-
     def createIHU(self, ae, rxcost, interval, address):
         """create I Hear You (IHU) message.
         Full description in RFC 6126, chapter 4.4.6."""
@@ -302,8 +329,9 @@ class Messages:
         msg_reserved = self.int2bytes(0, self.IHU['RESERVED_LENGTH'])
         msg_rxcost = self.int2bytes(rxcost, self.IHU['RXCOST_LENGTH'])
         msg_interval = self.int2bytes(interval, self.IHU['INTERVAL_LENGTH'])
-        msg_address = self.ip2bytes(address, self.IHU['ADDRESS_LENGTH']) 
+        msg_address = self.ipv62bytes(address, self.IHU['ADDRESS_LENGTH']) 
         return msg_ae + msg_reserved + msg_rxcost + msg_interval + msg_address
+
 
     def decodeIHU(self, msg):
         self.main_logger.info("decoding IHU message")
@@ -315,7 +343,7 @@ class Messages:
         i += self.IHU['RXCOST_LENGTH']
         msg_interval = self.bytes2int(msg[i:i+self.IHU['INTERVAL_LENGTH']])
         i += self.IHU['INTERVAL_LENGTH']
-        msg_address = self.bytes2ip(msg[i:i+self.IHU['ADDRESS_LENGTH']])
+        msg_address = self.bytes2ipv6(msg[i:i+self.IHU['ADDRESS_LENGTH']])
         return {'TYPE':self.IHU['TYPE'], 'AE':msg_ae, 'RXCOST':msg_rxcost, 'INTERVAL':msg_interval,
          'ADDRESS':msg_address}
 
@@ -328,6 +356,7 @@ class Messages:
         msg_routerid = self.int2bytes(routerid, self.RouterID['ROUTERID_LENGTH'])
         return msg_reserved + msg_routerid
 
+
     def decodeRouterID(self, msg):
         self.main_logger.info("decoding RouterID message")
         # reserved value is ignored on reception
@@ -336,14 +365,15 @@ class Messages:
         return {'TYPE':self.RouterID['TYPE'], 'ROUTERID':msg_routerid}
 
         
-    def createNextHop(self, ae, nexthop):
+    def createNextHop(self, ae, nexthop, dest):
         """create Next Hop message.
         Full description in RFC 6126, chapter 4.4.8."""
         self.main_logger.info("creating NextHop message")
         msg_ae = self.int2bytes(ae, self.NextHop['AE_LENGTH'])
         msg_reserved = self.int2bytes(0, self.NextHop['RESERVED_LENGTH'])
-        msg_nexthop = self.int2bytes(nexthop, self.NextHop['NEXTHOP_LENGTH'])
-        return msg_ae + msg_reserved + msg_nexthop
+        msg_nexthop = self.ipv42bytes(nexthop)
+        return msg_ae + msg_reserved
+
 
     def decodeNextHop(self, msg):
         self.main_logger.info("decoding NextHop message")
@@ -351,7 +381,7 @@ class Messages:
         msg_ae = self.bytes2int(msg[i:i+self.NextHop['AE_LENGTH']])
         # reserved value is ignored on reception
         i += self.NextHop['AE_LENGTH'] + self.NextHop['RESERVED_LENGTH'] 
-        msg_nexthop = self.bytes2int(msg[i:i+self.NextHop['NEXTHOP_LENGTH']])
+        msg_nexthop = self.bytes2ipv4(msg[i:i+self.NextHop['NEXTHOP_LENGTH']])
         return {'TYPE':self.NextHop['TYPE'], 'AE':msg_ae, 'NEXTHOP':msg_nexthop}
 
 
@@ -367,9 +397,10 @@ class Messages:
         msg_seqno = self.int2bytes(seqno, self.Update['SEQNO_LENGTH'])
         msg_metric = self.int2bytes(metric, self.Update['METRIC_LENGTH'])
         PREFIX_LENGTH = math.ceil(plen/8 - omitted) # round up
-        msg_prefix = self.ip2bytes(prefix, PREFIX_LENGTH)
+        msg_prefix = self.ipv62bytes(prefix, PREFIX_LENGTH)
 
         return msg_ae + msg_flags + msg_plen + msg_omitted + msg_interval + msg_seqno + msg_metric + msg_prefix
+
 
     def decodeUpdate(self, msg):
         self.main_logger.info("decoding Update message")
@@ -389,11 +420,10 @@ class Messages:
         msg_metric = self.bytes2int(msg[i:i+self.Update['METRIC_LENGTH']])
         i += self.Update['METRIC_LENGTH']
         PREFIX_LENGTH = math.ceil(msg_plen/8 - msg_omitted) # round up
-        msg_prefix = self.bytes2ip(msg[i:i+PREFIX_LENGTH])
+        msg_prefix = self.bytes2ipv6(msg[i:i+PREFIX_LENGTH])
         return {'TYPE':self.Update['TYPE'], 'AE':msg_ae, 'FLAGS':msg_flags, 'PLEN':msg_plen,
          'OMITTED':msg_omitted, 'INTERVAL':msg_interval, 'SEQNO':msg_seqno, 'METRIC':msg_metric, 
          'PREFIX':msg_prefix}
-
 
         
     def createRouteReq(self, ae, plen, prefix):
@@ -403,8 +433,9 @@ class Messages:
         msg_ae = self.int2bytes(ae, self.RouteReq['AE_LENGTH'])
         msg_plen = self.int2bytes(plen, self.RouteReq['PLEN_LENGTH'])
         PREFIX_LENGTH = math.ceil(plen/8)
-        msg_prefix = self.ip2bytes(prefix, PREFIX_LENGTH)
+        msg_prefix = self.ipv62bytes(prefix, PREFIX_LENGTH)
         return msg_ae + msg_plen + msg_prefix
+
 
     def decodeRouteReq(self, msg):
         self.main_logger.info("decoding RouteReq message")
@@ -414,7 +445,7 @@ class Messages:
         msg_plen = self.bytes2int(msg[i:i+self.RouteReq['PLEN_LENGTH']])
         i += self.RouteReq['PLEN_LENGTH']
         PREFIX_LENGTH = math.ceil(msg_plen/8)
-        msg_prefix = self.bytes2ip(msg[i:i+PREFIX_LENGTH])
+        msg_prefix = self.bytes2ipv6(msg[i:i+PREFIX_LENGTH])
         return {'TYPE':self.RouteReq['TYPE'], 'AE':msg_ae, 'PLEN':msg_plen, 'PREFIX':msg_prefix}
 
         
@@ -429,8 +460,9 @@ class Messages:
         msg_reserved = self.int2bytes(0, self.SeqnoReq['RESERVED_LENGTH'])
         msg_routerid = self.int2bytes(routerid, self.SeqnoReq['ROUTERID_LENGTH'])
         PREFIX_LENGTH = math.ceil(plen/8)
-        msg_prefix = self.ip2bytes(prefix, PREFIX_LENGTH)
+        msg_prefix = self.ipv62bytes(prefix, PREFIX_LENGTH)
         return msg_ae + msg_plen + msg_seqno + msg_hopcount + msg_reserved + msg_routerid + msg_prefix
+
 
     def decodeSeqnoReq(self, msg):
         self.main_logger.info("decoding SeqnoReq message")
@@ -447,7 +479,7 @@ class Messages:
         msg_routerid = self.bytes2int(msg[i:i+self.SeqnoReq['ROUTERID_LENGTH']])
         i += self.SeqnoReq['ROUTERID_LENGTH']
         PREFIX_LENGTH = math.ceil(msg_plen/8)
-        msg_prefix = self.bytes2ip(msg[i:i+PREFIX_LENGTH])
+        msg_prefix = self.bytes2ipv6(msg[i:i+PREFIX_LENGTH])
         return {'TYPE':self.SeqnoReq['TYPE'], 'AE':msg_ae, 'PLEN':msg_plen, 'SEQNO':msg_seqno, 
          'HOPCOUNT':msg_hopcount, 'ROUTERID':msg_routerid, 'PREFIX':msg_prefix}
 
@@ -457,6 +489,7 @@ class Messages:
         Used for creating network topology in Flask API."""
         self.main_logger.info("creating RTReq message")
         return b''
+
 
     def decodeRTReq(self, msg):
         self.main_logger.info("decoding RTReq message")
@@ -472,11 +505,12 @@ class Messages:
         PREFIX_LENGTH = math.ceil(plen/8)
         msg_prefixes = b''
         for prefix in prefixes:
-            msg_prefixes += self.ip2bytes(prefix, PREFIX_LENGTH)
+            msg_prefixes += self.ipv62bytes(prefix, PREFIX_LENGTH)
         msg_nexthops = b''
         for nexthop in nexthops:
-            msg_nexthops += self.ip2bytes(nexthop, PREFIX_LENGTH)
+            msg_nexthops += self.ipv62bytes(nexthop, PREFIX_LENGTH)
         return msg_plen + msg_pnum + msg_prefixes + msg_nexthops
+
 
     def decodeRTInfo(self, msg):
         self.main_logger.info("decoding RTInfo message")
@@ -488,9 +522,9 @@ class Messages:
         i += self.RTInfo['PNUM_LENGTH']
         msg_prefixes = []
         for j in range(0, msg_pnum):
-            msg_prefixes.append(self.bytes2ip(msg[i+j*PREFIX_LENGTH:i+(j+1)*PREFIX_LENGTH]))
+            msg_prefixes.append(self.bytes2ipv6(msg[i+j*PREFIX_LENGTH:i+(j+1)*PREFIX_LENGTH]))
         i += msg_pnum*PREFIX_LENGTH
         msg_nexthops = []
         for j in range(0, msg_pnum):
-            msg_nexthops.append(self.bytes2ip(msg[i+j*PREFIX_LENGTH:i+(j+1)*PREFIX_LENGTH]))            
+            msg_nexthops.append(self.bytes2ipv6(msg[i+j*PREFIX_LENGTH:i+(j+1)*PREFIX_LENGTH]))            
         return {'TYPE':self.RTInfo['TYPE'],'PLEN':msg_plen,'PNUM':msg_pnum,'PREFIXES':msg_prefixes,'NEXTHOPS':msg_nexthops}
