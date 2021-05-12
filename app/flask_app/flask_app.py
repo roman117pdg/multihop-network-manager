@@ -12,8 +12,8 @@ app = flask.Flask(__name__)
 app.debug = False
 app.secret_key = os.urandom(24)
 users_ids = []
-info = {'MAC':'', 'IP':'', 'SN':'', 'MODEL':''}
-nodes = [info['IP'] ]
+info = {'MAC':'', 'IPV6':'', 'IPV4':'', 'SN':'', 'MODEL':''}
+nodes = [info['IPV6'] ]
 colors = ['red']
 babel_man = None
 BACKGROUND_COLOR = 'aliceblue'
@@ -116,11 +116,11 @@ def other():
         return flask.redirect(flask.url_for('start_session'))
 
 
-def run(app_logger, bm, mac, ipv6, sn, model):
+def run(app_logger, bm, mac, ipv6, ipv4, sn, model):
     global babel_man, info, nodes
     nodes[0] = ipv6
     babel_man = bm
-    info = {'MAC':mac, 'IP':ipv6, 'SN':sn, 'MODEL':model}
+    info = {'MAC':mac, 'IPV6':ipv6, 'IPV4':ipv4, 'SN':sn, 'MODEL':model}
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0',port=port) # host='::'
     app_logger.info("flask app was started")
