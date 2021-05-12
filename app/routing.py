@@ -17,38 +17,45 @@ class Routing:
         self.nexthop_table = []
 
 
-
-    def set_route(self, destination, nexthop):
-        self.main_logger.info("start setting route to "+str(destination)+" via "+str(nexthop))
-        if destination == nexthop:
+    def set_route(self, destination_ipv6, nexthop_ipv6, destination_ipv4, nexthop_ipv4):
+        self.main_logger.info("start setting route to "+str(destination_ipv6)+"("+str(destination_ipv4)+") via "+str(nexthop_ipv6)+"("+str(nexthop_ipv4)+")")
+        if destination_ipv6 == nexthop_ipv6:
             self.main_logger.info("destination and nexthop are the same, no need for setting route")
         else:
             for record in self.nexthop_table:
-                if record['dest'] == destination:
-                    if record['nexthop'] == nexthop:
+                if record['dest_ipv6'] == destination_ipv6:
+                    if record['nexthop_ipv6'] == nexthop_ipv6:
                         self.main_logger.info("this route is already set")
                         return
                     else:
-                        self.del_nexthop_from_rt(destination=destination, nexthop=record['nexthop'])
-                        self.add_nexthop_to_rt(destination=destination, nexthop=nexthop)
-                        record['nexthop'] = nexthop
-                        self.main_logger.info("this route is now set")
+                        self.main_logger.warning("wrong nexthop was set")
+                        self.del_nexthop_from_rt(destination=destination_ipv6, nexthop=record['nexthop_ipv6'])
+                        self.del_nexthop_from_rt(destination=destination_ipv4, nexthop=record['nexthop_ipv4'])
+                        self.add_nexthop_to_rt(destination=destination_ipv6, nexthop=nexthop_ipv6)
+                        self.add_nexthop_to_rt(destination=destination_ipv4, nexthop=nexthop_ipv4)
+                        record['nexthop_ipv6'] = nexthop_ipv6
+                        self.main_logger.info("fixed to proper ipv4 and ipv6 nexthop")
                         return
-            self.add_nexthop_to_rt(destination=destination, nexthop=nexthop)
-            self.nexthop_table.append({'dest':destination, 'nexthop':nexthop})
-            self.main_logger.info("this route is now set")
+            self.add_nexthop_to_rt(destination=destination_ipv6, nexthop=nexthop_ipv6)
+            self.main_logger.info("this route ipv6 is now set")
+            self.add_nexthop_to_rt(destination=destination_ipv4, nexthop=nexthop_ipv4)
+            self.main_logger.info("this route ipv4 is now set")
+            self.nexthop_table.append({'dest_ipv6':destination_ipv6, 'nexthop_ipv6':nexthop_ipv6, 'dest_ipv4':destination_ipv4, 'nexthop_ipv4':nexthop_ipv4})
             return
 
-    def del_route(self, destination, nexthop):
-        self.main_logger.info("start delleting route to "+str(destination)+" via "+str(nexthop))
-        if destination == nexthop:
+
+    def del_route(self, destination_ipv6, nexthop_ipv6, destination_ipv4, nexthop_ipv4):
+        self.main_logger.info("start delleting route to "+str(destination_ipv6)+"("+str(destination_ipv4)+") via "+str(nexthop_ipv6)+"("+str(nexthop_ipv4)+")")
+        if destination_ipv6 == nexthop_ipv6:
             self.main_logger.info("destination and nexthop are the same, no need for selleting route")
         else:
             for record in self.nexthop_table:
-                if record['dest'] == destination:
-                    if record['nexthop'] == nexthop:
-                        self.del_nexthop_from_rt(destination=destination, nexthop=nexthop)
-                        self.main_logger.info("route was deleted")
+                if record['dest_ipv6'] == destination_ipv6:
+                    if record['nexthop_ipv6'] == nexthop_ipv6:
+                        self.del_nexthop_from_rt(destination=destination_ipv6, nexthop=nexthop_ipv6)
+                        self.main_logger.info("route ipv6 was deleted")
+                        self.del_nexthop_from_rt(destination=destination_ipv4, nexthop=nexthop_ipv4)
+                        self.main_logger.info("route ipv4 was deleted")
                         return
         self.main_logger.info("no route to delete")
         return
