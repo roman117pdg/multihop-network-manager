@@ -6,13 +6,25 @@ import logger
 
 class AdhocInit:
     
-    def __init__(self, main_logger):
+    def __init__(self, main_logger, interface, gateway, essid, wep_key, cell_id, channel):
         """AdhocInit initial function.
 
         Args:
             main_logger: Pointer to main logger class.
+            interface: String value of babel interface name (i.e. "wlan0").
+            gateway: String value of gateway interface name (i.e. "eth0").
+            channel: String value of number of WLAN channel (1-14).
+            essid: String value of essid name.
+            wep_key: String value of WEP key used for encryption.
+            cell_id: String value of cell/ap id.
         """
         self.main_logger = main_logger
+        self.INTERFACE = interface
+        self.GATEWAY = gateway
+        self.ESSID = essid
+        self.WEP_KEY = wep_key
+        self.CELL_ID = cell_id
+        self.CHANNEL = channel
         self.IPV6 = ""
         self.IPV4 = ""
 
@@ -169,7 +181,7 @@ class AdhocInit:
             # cmd_set_ip = "sudo ip "+action+" add "+ip+"/"+netmask+" dev "+interface <--- i think this is an error in syntax, but it have to be checked
             cmd_set_ip = "sudo ip addr "+action+" "+ip+"/"+netmask+" dev "+interface
             subprocess.Popen(cmd_set_ip, shell=True, stdout=subprocess.PIPE)
-            self.main_logger.info('ip:'+ip+" was "+action+" to "+interface)
+            self.main_logger.info('ip:'+ip+" was "+action+" to/from "+interface)
         except Exception as e:
             self.main_logger.error('Error occure while setting ip address, exception: '+str(e))
 
@@ -241,13 +253,15 @@ class AdhocInit:
     def enable_forwarding(self):
         """Runs commands in order to enable port forwarding."""
         try:
+            cmd_1 = "sudo sysctl -w net.ipv4.ip_forward=1"
+            subprocess.Popen(cmd_1, shell=True, stdout=subprocess.PIPE)
             cmd_1 = "sudo sysctl -w net.ipv6.conf.all.forwarding=1"
             subprocess.Popen(cmd_1, shell=True, stdout=subprocess.PIPE)
             cmd_2 = " iptables -A FORWARD -i wlan0 -j ACCEPT"
             subprocess.Popen(cmd_2, shell=True, stdout=subprocess.PIPE)
-            self.main_logger.info("ipv6 forwarding is enable")
+            self.main_logger.info("ipv6 and ipv4 forwarding is enable")
         except Exception as e:
-            self.main_logger.error('Error occure while enabling ipv6 forwarding, exception: '+str(e))
+            self.main_logger.error('Error occure while enabling ipv6/ipv4 forwarding, exception: '+str(e))
 
 
     def read_interface_index(self, interface):
@@ -259,12 +273,14 @@ class AdhocInit:
         Returns:
             Integer value of interface index.
         """
-        ifconfig_cmd = "cat /sys/class/net/"+interface+"/ifindex"
-        proc = subprocess.Popen(ifconfig_cmd, shell=True, stdout=subprocess.PIPE)
-        output = proc.stdout.read().decode()
-        index = int(output)
-        return index
-
+        try:
+            ifconfig_cmd = "cat /sys/class/net/"+interface+"/ifindex"
+            proc = subprocess.Popen(ifconfig_cmd, shell=True, stdout=subprocess.PIPE)
+            output = proc.stdout.read().decode()
+            index = int(output)
+            return index
+        except Exception as e:
+            self.main_logger.error('Error occure while reading interface index of '+str(interface)+', exception: '+str(e))
 
     def unblock_interfaces(self):
         """Runs command for unblocking interfaces."""
@@ -276,38 +292,55 @@ class AdhocInit:
             self.main_logger.error('Error occure unblocking interfaces, exception: '+str(e))
 
 
+    def set_gateway(self, gateway, interface):
+        """Setting internet gateway on given interface.
+
+        Args:
+            gateway: String value of gateway interface name (i.e. "eth0").
+            interface: String value of babel interface name (i.e. "wlan0").
+        """
+        try:
+            cmd_1 = "sudo iptables -A FORWARD -i "+str(interface)+" -o "+str(gateway)+" -j ACCEPT"
+            subprocess.Popen(cmd_1, shell=True, stdout=subprocess.PIPE)
+            cmd_1 = "sudo iptables -A FORWARD -i "+str(gateway)+" -o "+str(interface)+" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT"
+            subprocess.Popen(cmd_1, shell=True, stdout=subprocess.PIPE)
+            cmd_2 = "sudo iptables -t nat -A POSTROUTING -o "+str(gateway)+" -j MASQUERADE"
+            subprocess.Popen(cmd_2, shell=True, stdout=subprocess.PIPE)
+            self.main_logger.info("iptables rules for enabling gateway on"+str(gateway)+", were set")
+        except Exception as e:
+            self.main_logger.error('Error occure while setting gateway'+str(interface)+', exception: '+str(e))
+
+
     def run(self):
         """Runs function which are responsible for ad-hoc network configuration."""
-        essid = "MESHNETWORK"
-        wep_key = "55795d2076683f6a29516d2747"
-        cell_id = "C6:7E:CC:0F:30:3E"
-        channel = "1"
-        interface = "wlan0"
         self.unblock_interfaces()
-        self.ifconfig_int_state(interface=interface, state="down")
-        self.iwconfig_set_network(channel=channel, essid=essid, key=wep_key, cell=cell_id)
-        self.ifconfig_int_state(interface=interface, state="up")
+        self.ifconfig_int_state(interface=self.INTERFACE, state="down")
+        self.iwconfig_set_network(channel=self.CHANNEL, essid=self.ESSID, key=self.WEP_KEY, cell=self.CELL_ID)
+        self.ifconfig_int_state(interface=self.INTERFACE, state="up")
         auto_ipv6 = self.wait_for_autoipv6()
-        mac = self.get_mac_from_inter(interface)
+        mac = self.get_mac_from_inter(self.INTERFACE)
         self.MAC = mac
         expected_ipv6 = self.get_ipv6_from_mac(mac)
         if self.is_equal_ipv6(auto_ipv6, expected_ipv6) == False:
-            self.ifconfig_set_ip(ip=auto_ipv6, netmask="64", interface=interface, action="del")
-            self.ifconfig_set_ip(ip=expected_ipv6, netmask="64", interface=interface, action="add")
+            self.ifconfig_set_ip(ip=auto_ipv6, netmask="64", interface=self.INTERFACE, action="del")
+            self.ifconfig_set_ip(ip=expected_ipv6, netmask="64", interface=self.INTERFACE, action="add")
         self.IPV6 = expected_ipv6
-        self.main_logger.info( interface+' ipv6 adress has been established:'+self.IPV6)
+        self.main_logger.info(self.INTERFACE+' ipv6 adress has been established:'+self.IPV6)
         self.enable_forwarding()
         self.IPV4 = self.get_ipv4_from_mac(self.MAC)
         self.main_logger.info('IPv4 addr: '+str(self.IPV4))
-        if self.is_equal_ipv4(self.IPV4, self.read_ipv4(interface)) == False:
-            if self.read_ipv4(interface) != -1:
-                self.ifconfig_set_ip(ip=self.read_ipv4(interface), netmask="24", interface=interface, action="del")
-            self.ifconfig_set_ip(ip=self.IPV4, netmask="24", interface=interface, action="add")
+        if self.is_equal_ipv4(self.IPV4, self.read_ipv4(self.INTERFACE)) == False:
+            if self.read_ipv4(self.INTERFACE) != "":
+                self.ifconfig_set_ip(ip=self.read_ipv4(self.INTERFACE), netmask="16", interface=self.INTERFACE, action="del")
+            self.ifconfig_set_ip(ip=self.IPV4, netmask="16", interface=self.INTERFACE, action="add")
         self.SN = self.read_serial_num()
         self.main_logger.info('serial number: '+str(self.SN))
         self.model = self.read_dev_model()
         self.main_logger.info('model: '+str(self.model))
-        self.IFACE_IDX = self.read_interface_index(interface=interface)
+        self.IFACE_IDX = self.read_interface_index(interface=self.INTERFACE)
+        if self.GATEWAY != 'None':
+            self.main_logger.info('setting up gateway on '+str(self.GATEWAY)+" interface")
+            self.set_gateway(gateway=self.GATEWAY, interface=self.INTERFACE)
 
 
     def get_ipv6(self):
