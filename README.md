@@ -29,24 +29,40 @@ Application for creating multihop network. The Babel protocol was used to manage
    
         $ wget https://github.com/roman117pdg/multihop-network-manager/archive/refs/tags/[release number].zip
 
-10. Download necessary module pyroute2 and graphviz
+10. Download necessary module graphviz
 
-        $ sudo pip3 install pyroute2
         $ sudo pip3 install graphviz
         $ sudo apt-get install graphviz -y
 
-11. Run program with the proper flags 
+11. Run program with the proper arguments 
 
         $ sudo python3 ./main.py --verbose 1 --webapi 0
     
-    **"verbose" flag define verbosity level of logger*  
+    **"verbose" argument define verbosity level of logger*  
     -   *0 - logger is not printing any informations*
     -   *1 - logger is printing warnning and error messages to the "logger.log" file*  
     -   *2 - logger is printing warrning and error messages to the "logger.log" file and to the system terminal*
     -   *3 - logger is printing info, warrning and error messages to the "logger.log" file*  
     -   *4 - logger is printing info, warrning and error messages to the "logger.log" file and to the system terminal*
-    
-    
-    **"webapi" flag specify if web applicatgion for displaing information about network is enabled*
+
+    **"webapi" argument specify if web applicatgion for displaing information about network is enabled*
     -   *0 - web application is disabled*
     -   *1 - web application is enabled*
+
+    **"interface" argument takes name of interface that will be used for multihop networking*
+    *i.e. "wlan0"*
+
+    **"gateway" argument takes name of interface that will be used for internet gateway*
+    *i.e. "eth0"*
+    
+    **"essid" argument takes name of ESSID*
+    *i.e. "MESHNETWORK"*
+    
+    **"wep_key" argument takes WEP key used for encryption*
+    *i.e. "2f37424f574d4051665973437c"*
+    
+    **"cell_id" argument takes name of cell/ap id*
+    *i.e. "C6:7E:CC:0F:30:3E"*
+    
+    **"channel" argument takes number of of WLAN channel (1-14)*
+    *i.e. "1"*
