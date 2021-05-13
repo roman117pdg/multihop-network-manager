@@ -50,19 +50,25 @@ Application for creating multihop network. The Babel protocol was used to manage
     -   *1 - web application is enabled*
 
     **"interface" argument takes name of interface that will be used for multihop networking*
+    
     *i.e. "wlan0"*
 
     **"gateway" argument takes name of interface that will be used for internet gateway*
+    
     *i.e. "eth0"*
     
     **"essid" argument takes name of ESSID*
+    
     *i.e. "MESHNETWORK"*
     
     **"wep_key" argument takes WEP key used for encryption*
+    
     *i.e. "2f37424f574d4051665973437c"*
     
     **"cell_id" argument takes name of cell/ap id*
+    
     *i.e. "C6:7E:CC:0F:30:3E"*
     
     **"channel" argument takes number of of WLAN channel (1-14)*
+    
     *i.e. "1"*
