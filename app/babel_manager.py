@@ -6,7 +6,6 @@ import logger
 import logging
 import uuid
 import random
-from pyroute2 import IPRoute
 import messages
 import math 
 from tables import *
@@ -18,7 +17,7 @@ import json
 
 class BabelManager:
 
-    def __init__(self, mac, ip_v6, ip_v4, iface_idx, sn, ah_i, main_logger):       
+    def __init__(self, mac, ip_v6, ip_v4, interface, iface_idx, sn, ah_i, main_logger):       
         """BabelManager initial function.
 
         Args:
@@ -30,6 +29,11 @@ class BabelManager:
         self.MY_IPV6 = ip_v6
         self.MY_IPV4 = ip_v4
         self.MAC = mac
+        self.INTERFACE = interface
+        self.IFACE_IDX = iface_idx
+        self.ah_i = ah_i
+        self.main_logger = main_logger
+        self.routing = routing.Routing(main_logger=self.main_logger, interface=self.INTERFACE)
         self.TIME_FOR_RESPONSE = {'ROUTE_CHANGE':0.3, 'REQ_TO_EST_RT':2.0, 'RES_TO_EST_IP':0.2, 'REQ_IP_ADDR':0.5, 'ROUTE_INFO':1.0}
         # RFC 6126 Apenix B Constants
         # Intervals are cecified in centiseconds RFC 6126 4.1.1
@@ -44,18 +48,10 @@ class BabelManager:
         self.HOPCOUNT = 16
         self.ACK_REQ_INTERVAL = 5
 
-        self.IFACE_IDX = iface_idx
         self.MSG_TYPE = {'Pad1':0, 'PadN':1, 'AckReq':2, 'Ack':3, 'Hello':4, 'IHU':5,  
         'RouterID':6, 'NextHop':7, 'Update':8, 'RouteReq':9, 'SeqnoReq':10, 'RTReq':11, 'RTInfo':12}
-        # arr = ip_v6.split(':')
         self.MY_RID = int(sn,16)%int(0xFFFFFFFF)
-        # self.MY_RID = 0
-        self.main_logger = main_logger
-        self.iproute = IPRoute()
-        self.routing = routing.Routing(main_logger)
         self.seqno = 0
-        self.interface = self.iproute.link_lookup(ifname='wlan0')[0]
-        self.ah_i = ah_i
 
         self.interface_table = []
         self.neigh_table = []
