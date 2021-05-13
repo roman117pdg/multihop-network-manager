@@ -1,19 +1,16 @@
 import logger
 import logging
-#from pyroute2 import IPRoute
 import subprocess
 
 class Routing:
 
-    def __init__(self, main_logger):
+    def __init__(self, main_logger, interface):
         """Routing initial function.
         Args:
             main_logger: Pointer to main logger class.
         """
         self.main_logger = main_logger
-        # self.iproute = IPRoute()
-        # self.interface = self.iproute.link_lookup(ifname='wlan0')[0]
-        # nexthop_table = [{dest, nexthop}]
+        self.INTERFACE = interface
         self.nexthop_table = []
 
 
@@ -65,7 +62,7 @@ class Routing:
         """Add nexthop to routingtable."""
         self.main_logger.info("adding route to "+str(destination)+" via "+str(nexthop))
         try:
-            cmd_set_net = "sudo ip route add "+str(destination)+" via "+str(nexthop)+" dev wlan0"
+            cmd_set_net = "sudo ip route add "+str(destination)+" via "+str(nexthop)+" dev "+str(self.INTERFACE)
             subprocess.Popen(cmd_set_net, shell=True, stdout=subprocess.PIPE)
         except Exception as e:
             self.main_logger.error("error occure while adding route to "+str(destination)+" via "+str(nexthop)+", exeption: "+str(e))
@@ -77,7 +74,7 @@ class Routing:
         """Delete nexthop from routingtable."""
         self.main_logger.info("deleteing route to "+str(destination)+" via "+str(nexthop))
         try:
-            cmd_set_net = "sudo ip route del "+str(destination)+" via "+str(nexthop)+" dev wlan0"
+            cmd_set_net = "sudo ip route del "+str(destination)+" via "+str(nexthop)+" dev "+str(self.INTERFACE)
             subprocess.Popen(cmd_set_net, shell=True, stdout=subprocess.PIPE)
         except Exception as e:
             self.main_logger.error("error occure while delleting route to "+str(destination)+" via "+str(nexthop)+", exeption: "+str(e))
