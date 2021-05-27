@@ -49,13 +49,17 @@ Application for creating multihop network. The Babel protocol was used to manage
     -   *0 - web application is disabled*
     -   *1 - web application is enabled*
 
-    **"interface" argument takes name of interface that will be used for multihop networking*
+    **"iface_babel" argument takes name of interface that will be used for multihop networking*
     
     *i.e. "wlan0"*
 
-    **"gateway" argument takes name of interface that will be used for internet gateway*
+    **"iface_gateway" argument takes name of interface that will be used for internet gateway*
     
     *i.e. "eth0"*
+    
+    **"gateway" argument takes IPv4 address that will be set as default internet gateway*
+    
+    *i.e. "169.254.1.1"*
     
     **"essid" argument takes name of ESSID*
     
