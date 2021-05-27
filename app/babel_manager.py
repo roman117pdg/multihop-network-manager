@@ -680,7 +680,7 @@ class BabelManager:
         wait_time = self.HELLO_MSG_INTERVAL/10
         sub_wait_time = 0
         while True:
-            time.sleep(abs(wait_time-sub_wait_time)))
+            time.sleep(abs(wait_time-sub_wait_time))
             sub_wait_time = 0
             if self.number_of_init_hello_msgs == 0:
                 self.send_Hello_msg()
