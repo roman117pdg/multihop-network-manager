@@ -52,6 +52,7 @@ class BabelManager:
         'RouterID':6, 'NextHop':7, 'Update':8, 'RouteReq':9, 'SeqnoReq':10, 'RTReq':11, 'RTInfo':12}
         self.MY_RID = int(sn,16)%int(0xFFFFFFFF)
         self.seqno = 0
+        self.number_of_init_hello_msgs = 0
 
         self.interface_table = []
         self.neigh_table = []
@@ -226,8 +227,7 @@ class BabelManager:
         IHU_hist=0.0, rxcost=int(0xFFFF), txcost=int(0xFFFF), expect_seqno=message['SEQNO']+1, Hello_interval=message['INTERVAL'], IHU_interval=self.IHU_MSG_INTERVAL))
 
         self.main_logger.info("sending 5 trigerred Hello messages")
-        for i in range(5):
-            self.send_Hello_msg()
+        self.number_of_init_hello_msgs = 5
         return False
 
 
@@ -677,9 +677,19 @@ class BabelManager:
         Hello_per_IHU = int(self.IHU_MSG_INTERVAL/self.HELLO_MSG_INTERVAL)
         Hello_per_Update = int(self.UPDATE_MSG_INTERVAL/self.HELLO_MSG_INTERVAL)
         iterator = 0
+        wait_time = self.HELLO_MSG_INTERVAL/10
+        sub_wait_time = 0
         while True:
-            time.sleep(self.HELLO_MSG_INTERVAL/10)
-            self.send_Hello_msg()
+            time.sleep(abs(wait_time-sub_wait_time)))
+            sub_wait_time = 0
+            if self.number_of_init_hello_msgs == 0:
+                self.send_Hello_msg()
+            else:
+                while self.number_of_init_hello_msgs > 0:
+                    sub_wait_time += 0.1
+                    self.number_of_init_hello_msgs -= 1
+                    self.send_Hello_msg()
+                    time.sleep(0.1)
             iterator += 1
             if (iterator%Hello_per_IHU) == 0:
                 self.send_IHU_msg()
