@@ -63,11 +63,14 @@ class Routing:
         self.main_logger.info("adding route to "+str(destination)+" via "+str(nexthop))
         try:
             cmd_set_net = "sudo ip route add "+str(destination)+" via "+str(nexthop)+" dev "+str(self.INTERFACE)
-            subprocess.Popen(cmd_set_net, shell=True, stdout=subprocess.PIPE)
+            proc = subprocess.Popen(cmd_set_net, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            error = proc.stderr.read().decode()
+            if error != "":
+                self.main_logger.error('Error occure while adding route to routing table, error: '+str(error))
+            else:
+                self.main_logger.info("route to "+str(destination)+" via "+str(nexthop) +" was added to routing table")
         except Exception as e:
-            self.main_logger.error("error occure while adding route to "+str(destination)+" via "+str(nexthop)+", exeption: "+str(e))
-        else:
-            self.main_logger.info("route to "+str(destination)+" via "+str(nexthop) +" was added to routing table")
+            self.main_logger.error("Exception occure while adding route to "+str(destination)+" via "+str(nexthop)+", exeption: "+str(e))
 
 
     def del_nexthop_from_rt(self, destination, nexthop):
@@ -75,11 +78,14 @@ class Routing:
         self.main_logger.info("deleteing route to "+str(destination)+" via "+str(nexthop))
         try:
             cmd_set_net = "sudo ip route del "+str(destination)+" via "+str(nexthop)+" dev "+str(self.INTERFACE)
-            subprocess.Popen(cmd_set_net, shell=True, stdout=subprocess.PIPE)
+            subprocess.Popen(cmd_set_net, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            error = proc.stderr.read().decode()
+            if error != "":
+                self.main_logger.error('Error occure while deleting route from routing table, error: '+str(error))
+            else:
+                self.main_logger.info("route to "+str(destination)+" via "+str(nexthop) +" was deleted from routing table")
         except Exception as e:
             self.main_logger.error("error occure while delleting route to "+str(destination)+" via "+str(nexthop)+", exeption: "+str(e))
-        else:
-            self.main_logger.info("route to "+str(destination)+" via "+str(nexthop) +" was deleted from routing table")
 
 
     def cleanup_rt(self):
