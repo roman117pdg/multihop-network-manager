@@ -7,6 +7,7 @@ import secrets
 from graphviz import Digraph
 from shutil import copyfile
 import random
+import zipfile
 
 app = flask.Flask(__name__)
 app.debug = False
@@ -98,7 +99,7 @@ def net_topology():
                 nt.edge(str(src_index), str(next_hop_index), color=colors[dest_index])
 
 
-        remove_old_images(directory="flask_app/static/images")
+        # remove_old_images(directory="flask_app/static/images")
         time_stamp = str(time.time())
         nt.render('flask_app/static/images/net_top_'+time_stamp+'.gv')
         png_file = os.path.join('static/images/net_top_'+time_stamp+'.gv.png')
@@ -110,8 +111,9 @@ def net_topology():
 @app.route("/other", methods=['GET', 'POST'])
 def other():
     if 'id' in flask.session:
-        copyfile('logger.log', 'flask_app/logger.log')
-        return flask.send_from_directory(os.path.join(''), 'logger.log', as_attachment=True)
+        # copyfile('logger.log', 'flask_app/logger.log') directory=os.path.join(''),
+        file_name = zip_files()
+        return flask.send_file(file_name, as_attachment=True)
     else:
         return flask.redirect(flask.url_for('start_session'))
 
@@ -124,6 +126,17 @@ def run(app_logger, bm, mac, ipv6, ipv4, sn, model):
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0',port=port) # host='::'
     app_logger.info("flask app was started")
+
+
+def zip_files():
+    time_stamp = str(time.time())
+    zip_file_name = 'other_'+time_stamp+'.zip'
+    zip_file_dir = 'flask_app/'
+    with zipfile.ZipFile(zip_file_dir+zip_file_name,'w') as zip:
+        for file in os.listdir('flask_app/static/images/'):
+            zip.write(os.path.join('flask_app/static/images/', file))
+        zip.write(os.path.join('logger.log'))  
+    return zip_file_name
 
 def set_value(value):
     global node_value
