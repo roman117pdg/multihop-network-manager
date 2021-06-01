@@ -12,7 +12,6 @@ from tables import *
 import routing
 import json
 import signal
-import os
 import sys
 
 
@@ -346,6 +345,8 @@ class BabelManager:
                     best_route.use_flag = True
                     if old_route != None:
                         old_route.use_flag = False
+                        self.main_logger.info("deleting old route (prefix: "+str(old_route.prefix)+",nexthop: "+str(old_route.nexthop)+") from OS RT")
+                        self.routing.del_route(destination_ipv6=old_route.prefix, nexthop_ipv6=old_route.nexthop, destination_ipv4=old_route.prefix_ipv4, nexthop_ipv4=old_route.nexthop_ipv4)
                     self.send_Update_msg(record_prefix=source.prefix)
                     self.send_RouteReq_msg(ae=0, addr='MULTICAST', prefix=source.prefix)
                 else:
@@ -719,15 +720,4 @@ class BabelManager:
         self.main_logger.info("SIGINT or CTRL-C detected. Exiting program gracefully")
         print('You pressed Ctrl+C! Exiting program.')
         self.routing.cleanup_rt()
-        # delete network topology files
-        self.main_logger.info("deleting network topology files")
-        for file in os.listdir("flask_app/static/images"):
-            os.remove("flask_app/static/images/"+file)
-        # delete zip files
-        self.main_logger.info("deleting zip files")
-        for file in os.listdir("flask_app"):
-            if os.path.splitext(file)[1] == '.zip':
-                os.remove("flask_app/"+file)
         sys.exit(0)
-        
-
