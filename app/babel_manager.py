@@ -11,7 +11,8 @@ import math
 from tables import *
 import routing
 import json
-
+import signal
+import sys
 
 
 
@@ -674,6 +675,9 @@ class BabelManager:
         check_route_exp_tim_thread.start()
 
 
+
+        signal.signal(signal.SIGINT, self.signal_handler)
+
         Hello_per_IHU = int(self.IHU_MSG_INTERVAL/self.HELLO_MSG_INTERVAL)
         Hello_per_Update = int(self.UPDATE_MSG_INTERVAL/self.HELLO_MSG_INTERVAL)
         iterator = 0
@@ -706,3 +710,12 @@ class BabelManager:
                 print(str(record))
             print('--------------------------------------- seq_number ----------------------------------------')
             print(str(self.seqno))
+
+    
+        
+    def signal_handler(self, sig, frame):
+        """Handle exit any cleanup routing table."""
+        self.main_logger.info("SIGINT or CTRL-C detected. Exiting program gracefully")
+        print('You pressed Ctrl+C! Exiting program.')
+        self.routing.cleanup_rt()
+        sys.exit(0)
