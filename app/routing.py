@@ -78,7 +78,7 @@ class Routing:
         self.main_logger.info("deleteing route to "+str(destination)+" via "+str(nexthop))
         try:
             cmd_set_net = "sudo ip route del "+str(destination)+" via "+str(nexthop)+" dev "+str(self.INTERFACE)
-            subprocess.Popen(cmd_set_net, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc = subprocess.Popen(cmd_set_net, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             error = proc.stderr.read().decode()
             if error != "":
                 self.main_logger.error('Error occure while deleting route from routing table, error: '+str(error))
