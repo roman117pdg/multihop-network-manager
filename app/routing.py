@@ -12,7 +12,7 @@ class Routing:
         self.main_logger = main_logger
         self.INTERFACE = interface
         self.nexthop_table = []
-
+        # {'dest_ipv6':destination_ipv6, 'nexthop_ipv6':nexthop_ipv6, 'dest_ipv4':destination_ipv4, 'nexthop_ipv4':nexthop_ipv4}
 
     def set_route(self, destination_ipv6, nexthop_ipv6, destination_ipv4, nexthop_ipv4):
         self.main_logger.info("start setting route to "+str(destination_ipv6)+"("+str(destination_ipv4)+") via "+str(nexthop_ipv6)+"("+str(nexthop_ipv4)+")")
@@ -80,4 +80,15 @@ class Routing:
             self.main_logger.error("error occure while delleting route to "+str(destination)+" via "+str(nexthop)+", exeption: "+str(e))
         else:
             self.main_logger.info("route to "+str(destination)+" via "+str(nexthop) +" was deleted from routing table")
-   
+
+
+    def cleanup_rt(self):
+        """Cleanup routing table - rollback all changes"""
+        self.main_logger.info("start process of cleaning up routing table")
+        for record in self.nexthop_table:
+            self.del_nexthop_from_rt(destination=record['dest_ipv6'], nexthop=record['nexthop_ipv6'])
+            self.main_logger.info("route ipv6 was deleted")
+            self.del_nexthop_from_rt(destination=record['dest_ipv4'], nexthop=record['nexthop_ipv4'])
+            self.main_logger.info("route ipv4 was deleted")
+        self.main_logger.info("all changes to routing table were rollback")
+        
