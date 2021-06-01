@@ -12,6 +12,7 @@ from tables import *
 import routing
 import json
 import signal
+import os
 import sys
 
 
@@ -718,4 +719,15 @@ class BabelManager:
         self.main_logger.info("SIGINT or CTRL-C detected. Exiting program gracefully")
         print('You pressed Ctrl+C! Exiting program.')
         self.routing.cleanup_rt()
+        # delete network topology files
+        self.main_logger.info("deleting network topology files")
+        for file in os.listdir("flask_app/static/images"):
+            os.remove("flask_app/static/images/"+file)
+        # delete zip files
+        self.main_logger.info("deleting zip files")
+        for file in os.listdir("flask_app"):
+            if os.path.splitext(file)[1] == '.zip':
+                os.remove("flask_app/"+file)
         sys.exit(0)
+        
+
