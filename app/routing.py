@@ -53,6 +53,7 @@ class Routing:
                         self.main_logger.info("route ipv6 was deleted")
                         self.del_nexthop_from_rt(destination=destination_ipv4, nexthop=nexthop_ipv4)
                         self.main_logger.info("route ipv4 was deleted")
+                        self.nexthop_table.remove(record)
                         return
         self.main_logger.info("no route to delete")
         return
